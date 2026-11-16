@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 - 2026-11-16
+
+- Require `aiowebostv>=1.0.1` instead of pinning it: Home Assistant ships the
+  same library and has to be free to update it.
+
 ## 0.1.0 - 2026-11-16
 
 - First release: media player with built-in Wake-on-LAN, remote, screenshot
