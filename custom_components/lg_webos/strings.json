@@ -1,0 +1,412 @@
+{
+  "config": {
+    "flow_title": "{name} ({host})",
+    "step": {
+      "user": {
+        "title": "LG webOS TV",
+        "menu_options": {
+          "import_native": "Import from the built-in LG webOS TV integration",
+          "manual": "Enter the address"
+        }
+      },
+      "import_native": {
+        "title": "Import TVs",
+        "description": "The pairing is reused, so nothing shows on the TV and it may be off. The built-in integration keeps working.",
+        "data": {
+          "entries": "TVs"
+        }
+      },
+      "manual": {
+        "data": {
+          "host": "Host"
+        },
+        "data_description": {
+          "host": "IP address or hostname of the TV. It has to be on."
+        }
+      },
+      "pairing": {
+        "title": "Pair with {name}",
+        "description": "Submit, then accept the request on the TV ({host})."
+      },
+      "reconfigure": {
+        "data": {
+          "host": "Host"
+        },
+        "data_description": {
+          "host": "New IP address or hostname of the TV."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect. Is the TV on?",
+      "pairing_refused": "The TV refused the pairing. Accept the request on screen."
+    },
+    "abort": {
+      "already_configured": "This TV is already configured",
+      "cannot_connect": "Could not connect to the TV",
+      "wrong_device": "That address belongs to a different TV",
+      "reconfigure_successful": "Address updated",
+      "reauth_successful": "Paired again"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "input_plugged": {
+        "name": "{input} plugged"
+      },
+      "internet": {
+        "name": "Internet"
+      }
+    },
+    "button": {
+      "screen_saver": {
+        "name": "Screen saver"
+      },
+      "input_picker": {
+        "name": "Input picker"
+      }
+    },
+    "image": {
+      "screen": {
+        "name": "Screen"
+      }
+    },
+    "notify": {
+      "toast": {
+        "name": "Toast"
+      }
+    },
+    "number": {
+      "backlight": {
+        "name": "Backlight"
+      },
+      "contrast": {
+        "name": "Contrast"
+      },
+      "brightness": {
+        "name": "Brightness"
+      },
+      "color": {
+        "name": "Color"
+      },
+      "sharpness": {
+        "name": "Sharpness"
+      },
+      "tint": {
+        "name": "Tint"
+      },
+      "colortemperature": {
+        "name": "Color temperature"
+      }
+    },
+    "remote": {
+      "remote": {
+        "name": "Remote"
+      }
+    },
+    "select": {
+      "sound_output": {
+        "name": "Sound output",
+        "state": {
+          "tv_speaker": "TV speaker",
+          "external_arc": "HDMI ARC",
+          "external_optical": "Optical",
+          "bt_soundbar": "Bluetooth",
+          "mobile_phone": "Mobile phone",
+          "lineout": "Line out",
+          "headphone": "Headphone",
+          "external_speaker": "External speaker",
+          "tv_external_speaker": "TV + external speaker",
+          "tv_speaker_headphone": "TV + headphone",
+          "soundbar": "Soundbar"
+        }
+      },
+      "picturemode": {
+        "name": "Picture mode"
+      },
+      "energysaving": {
+        "name": "Energy saving"
+      },
+      "dynamiccontrast": {
+        "name": "Dynamic contrast"
+      },
+      "peakbrightness": {
+        "name": "Peak brightness"
+      },
+      "trumotionmode": {
+        "name": "TruMotion"
+      },
+      "colorgamut": {
+        "name": "Color gamut"
+      },
+      "gamma": {
+        "name": "Gamma"
+      },
+      "blacklevel": {
+        "name": "Black level"
+      },
+      "superresolution": {
+        "name": "Super resolution"
+      },
+      "noisereduction": {
+        "name": "Noise reduction"
+      },
+      "smoothgradation": {
+        "name": "Smooth gradation"
+      },
+      "hdrdynamictonemapping": {
+        "name": "HDR tone mapping"
+      },
+      "soundmode": {
+        "name": "Sound mode"
+      },
+      "soundoutputdigital": {
+        "name": "Digital sound output"
+      },
+      "tvonscreen": {
+        "name": "Screen at power on"
+      },
+      "lifeonscreenmode": {
+        "name": "Always ready"
+      }
+    },
+    "sensor": {
+      "power_state": {
+        "name": "Power state"
+      },
+      "app": {
+        "name": "App"
+      },
+      "input": {
+        "name": "Input"
+      },
+      "channel": {
+        "name": "Channel"
+      },
+      "firmware": {
+        "name": "Firmware"
+      },
+      "webos_version": {
+        "name": "webOS version"
+      },
+      "power_on_reason": {
+        "name": "Power-on reason"
+      },
+      "network": {
+        "name": "Network"
+      },
+      "ip_address": {
+        "name": "IP address"
+      },
+      "input_device": {
+        "name": "{input} device"
+      }
+    },
+    "switch": {
+      "screen": {
+        "name": "Screen"
+      },
+      "simplinkenable": {
+        "name": "SIMPLINK (HDMI-CEC)"
+      },
+      "wolwowlonoff": {
+        "name": "Wake on LAN"
+      },
+      "bleadvertisingonoff": {
+        "name": "Bluetooth advertising"
+      },
+      "audioguidance": {
+        "name": "Audio guidance"
+      },
+      "liveplus": {
+        "name": "Live Plus"
+      },
+      "earcsupport": {
+        "name": "eARC"
+      },
+      "avsync": {
+        "name": "AV sync adjustment"
+      },
+      "quickstartmode": {
+        "name": "Quick Start+"
+      },
+      "eyecomfortmode": {
+        "name": "Eye comfort mode"
+      },
+      "motioneyecare": {
+        "name": "Motion eye care"
+      },
+      "realcinema": {
+        "name": "Real Cinema"
+      },
+      "alwayson": {
+        "name": "Always on"
+      },
+      "homeautolaunch": {
+        "name": "Home at power on"
+      },
+      "homepromotion": {
+        "name": "Home promotions"
+      },
+      "automaticupdate": {
+        "name": "Automatic updates"
+      },
+      "uhd_deep_color": {
+        "name": "{input} Deep Color"
+      }
+    }
+  },
+  "exceptions": {
+    "command_failed": {
+      "message": "The TV did not accept the command: {error}"
+    },
+    "tv_off": {
+      "message": "The TV is off"
+    },
+    "device_not_found": {
+      "message": "That device is not an LG webOS TV"
+    },
+    "source_not_found": {
+      "message": "Source {source} not found"
+    },
+    "channel_not_found": {
+      "message": "Channel {channel} not found"
+    },
+    "media_type_not_supported": {
+      "message": "Media type {media_type} is not supported (use channel, app, input or url)"
+    },
+    "path_not_allowed": {
+      "message": "{filename} is outside the allowed folders (allowlist_external_dirs)"
+    },
+    "screenshot_failed": {
+      "message": "The TV did not return a screenshot"
+    },
+    "auth_failed": {
+      "message": "The TV no longer accepts the pairing key"
+    }
+  },
+  "services": {
+    "button": {
+      "name": "Press button",
+      "description": "Presses a key of the remote.",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "The TV to control."
+        },
+        "button": {
+          "name": "Button",
+          "description": "Key name, e.g. HOME, BACK, ENTER, UP, MENU."
+        }
+      }
+    },
+    "command": {
+      "name": "Send command",
+      "description": "Sends an SSAP request and returns the answer.",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "The TV to control."
+        },
+        "command": {
+          "name": "Command",
+          "description": "SSAP URI without the ssap:// prefix."
+        },
+        "payload": {
+          "name": "Payload",
+          "description": "Request payload."
+        }
+      }
+    },
+    "luna": {
+      "name": "Call luna method",
+      "description": "Calls an internal luna method through a system alert. There is no answer.",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "The TV to control."
+        },
+        "uri": {
+          "name": "URI",
+          "description": "Full luna:// URI."
+        },
+        "params": {
+          "name": "Parameters",
+          "description": "Method parameters."
+        }
+      }
+    },
+    "set_system_settings": {
+      "name": "Set system settings",
+      "description": "Writes TV settings of any category (picture, sound, option, network, other...).",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "The TV to control."
+        },
+        "category": {
+          "name": "Category",
+          "description": "Settings category."
+        },
+        "settings": {
+          "name": "Settings",
+          "description": "Keys and values to write."
+        }
+      }
+    },
+    "launch_app": {
+      "name": "Launch app",
+      "description": "Opens an app, optionally on a given content.",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "The TV to control."
+        },
+        "app_id": {
+          "name": "App ID",
+          "description": "webOS app id."
+        },
+        "content_id": {
+          "name": "Content ID",
+          "description": "Deep link understood by the app."
+        },
+        "params": {
+          "name": "Parameters",
+          "description": "Launch parameters."
+        }
+      }
+    },
+    "type_text": {
+      "name": "Type text",
+      "description": "Types into the focused text field (the on-screen keyboard must be open).",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "The TV to control."
+        },
+        "text": {
+          "name": "Text",
+          "description": "Text to type."
+        },
+        "replace": {
+          "name": "Replace",
+          "description": "Replace what is already in the field."
+        }
+      }
+    },
+    "screenshot": {
+      "name": "Take screenshot",
+      "description": "Saves what is on screen as a JPEG file.",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "The TV to control."
+        },
+        "filename": {
+          "name": "File name",
+          "description": "Where to save, inside an allowed folder."
+        }
+      }
+    }
+  }
+}

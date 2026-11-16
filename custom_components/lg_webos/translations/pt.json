@@ -1,0 +1,412 @@
+{
+  "config": {
+    "flow_title": "{name} ({host})",
+    "step": {
+      "user": {
+        "title": "TV LG webOS",
+        "menu_options": {
+          "import_native": "Importar da integração LG webOS TV nativa",
+          "manual": "Informar o endereço"
+        }
+      },
+      "import_native": {
+        "title": "Importar TVs",
+        "description": "O pareamento é reaproveitado: nada aparece na TV e ela pode estar desligada. A integração nativa continua funcionando.",
+        "data": {
+          "entries": "TVs"
+        }
+      },
+      "manual": {
+        "data": {
+          "host": "Endereço"
+        },
+        "data_description": {
+          "host": "IP ou nome de rede da TV. Ela precisa estar ligada."
+        }
+      },
+      "pairing": {
+        "title": "Parear com {name}",
+        "description": "Envie e aceite o pedido que aparece na TV ({host})."
+      },
+      "reconfigure": {
+        "data": {
+          "host": "Endereço"
+        },
+        "data_description": {
+          "host": "Novo IP ou nome de rede da TV."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Não foi possível conectar. A TV está ligada?",
+      "pairing_refused": "A TV recusou o pareamento. Aceite o pedido na tela."
+    },
+    "abort": {
+      "already_configured": "Esta TV já está configurada",
+      "cannot_connect": "Não foi possível conectar à TV",
+      "wrong_device": "Esse endereço é de outra TV",
+      "reconfigure_successful": "Endereço atualizado",
+      "reauth_successful": "Pareada novamente"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "input_plugged": {
+        "name": "{input} conectada"
+      },
+      "internet": {
+        "name": "Internet"
+      }
+    },
+    "button": {
+      "screen_saver": {
+        "name": "Protetor de tela"
+      },
+      "input_picker": {
+        "name": "Seletor de entradas"
+      }
+    },
+    "image": {
+      "screen": {
+        "name": "Tela"
+      }
+    },
+    "notify": {
+      "toast": {
+        "name": "Aviso na tela"
+      }
+    },
+    "number": {
+      "backlight": {
+        "name": "Luz de fundo"
+      },
+      "contrast": {
+        "name": "Contraste"
+      },
+      "brightness": {
+        "name": "Brilho"
+      },
+      "color": {
+        "name": "Cor"
+      },
+      "sharpness": {
+        "name": "Nitidez"
+      },
+      "tint": {
+        "name": "Matiz"
+      },
+      "colortemperature": {
+        "name": "Temperatura de cor"
+      }
+    },
+    "remote": {
+      "remote": {
+        "name": "Controle remoto"
+      }
+    },
+    "select": {
+      "sound_output": {
+        "name": "Saída de som",
+        "state": {
+          "tv_speaker": "Alto-falante da TV",
+          "external_arc": "HDMI ARC",
+          "external_optical": "Óptica",
+          "bt_soundbar": "Bluetooth",
+          "mobile_phone": "Celular",
+          "lineout": "Saída de linha",
+          "headphone": "Fone de ouvido",
+          "external_speaker": "Alto-falante externo",
+          "tv_external_speaker": "TV + alto-falante externo",
+          "tv_speaker_headphone": "TV + fone de ouvido",
+          "soundbar": "Soundbar"
+        }
+      },
+      "picturemode": {
+        "name": "Modo de imagem"
+      },
+      "energysaving": {
+        "name": "Economia de energia"
+      },
+      "dynamiccontrast": {
+        "name": "Contraste dinâmico"
+      },
+      "peakbrightness": {
+        "name": "Pico de brilho"
+      },
+      "trumotionmode": {
+        "name": "TruMotion"
+      },
+      "colorgamut": {
+        "name": "Gama de cores"
+      },
+      "gamma": {
+        "name": "Gama"
+      },
+      "blacklevel": {
+        "name": "Nível de preto"
+      },
+      "superresolution": {
+        "name": "Super resolução"
+      },
+      "noisereduction": {
+        "name": "Redução de ruído"
+      },
+      "smoothgradation": {
+        "name": "Gradação suave"
+      },
+      "hdrdynamictonemapping": {
+        "name": "Mapeamento de tons HDR"
+      },
+      "soundmode": {
+        "name": "Modo de som"
+      },
+      "soundoutputdigital": {
+        "name": "Saída de som digital"
+      },
+      "tvonscreen": {
+        "name": "Tela ao ligar"
+      },
+      "lifeonscreenmode": {
+        "name": "Sempre pronta"
+      }
+    },
+    "sensor": {
+      "power_state": {
+        "name": "Estado de energia"
+      },
+      "app": {
+        "name": "Aplicativo"
+      },
+      "input": {
+        "name": "Entrada"
+      },
+      "channel": {
+        "name": "Canal"
+      },
+      "firmware": {
+        "name": "Firmware"
+      },
+      "webos_version": {
+        "name": "Versão do webOS"
+      },
+      "power_on_reason": {
+        "name": "Motivo de ligar"
+      },
+      "network": {
+        "name": "Rede"
+      },
+      "ip_address": {
+        "name": "Endereço IP"
+      },
+      "input_device": {
+        "name": "Dispositivo na {input}"
+      }
+    },
+    "switch": {
+      "screen": {
+        "name": "Tela"
+      },
+      "simplinkenable": {
+        "name": "SIMPLINK (HDMI-CEC)"
+      },
+      "wolwowlonoff": {
+        "name": "Ligar pela rede"
+      },
+      "bleadvertisingonoff": {
+        "name": "Anúncio Bluetooth"
+      },
+      "audioguidance": {
+        "name": "Guia de áudio"
+      },
+      "liveplus": {
+        "name": "Live Plus"
+      },
+      "earcsupport": {
+        "name": "eARC"
+      },
+      "avsync": {
+        "name": "Ajuste de sincronia AV"
+      },
+      "quickstartmode": {
+        "name": "Quick Start+"
+      },
+      "eyecomfortmode": {
+        "name": "Modo conforto visual"
+      },
+      "motioneyecare": {
+        "name": "Cuidado visual em movimento"
+      },
+      "realcinema": {
+        "name": "Real Cinema"
+      },
+      "alwayson": {
+        "name": "Sempre ligada"
+      },
+      "homeautolaunch": {
+        "name": "Abrir a Home ao ligar"
+      },
+      "homepromotion": {
+        "name": "Promoções na Home"
+      },
+      "automaticupdate": {
+        "name": "Atualizações automáticas"
+      },
+      "uhd_deep_color": {
+        "name": "Deep Color {input}"
+      }
+    }
+  },
+  "exceptions": {
+    "command_failed": {
+      "message": "A TV não aceitou o comando: {error}"
+    },
+    "tv_off": {
+      "message": "A TV está desligada"
+    },
+    "device_not_found": {
+      "message": "Esse dispositivo não é uma TV LG webOS"
+    },
+    "source_not_found": {
+      "message": "Fonte {source} não encontrada"
+    },
+    "channel_not_found": {
+      "message": "Canal {channel} não encontrado"
+    },
+    "media_type_not_supported": {
+      "message": "Tipo de mídia {media_type} não suportado (use channel, app, input ou url)"
+    },
+    "path_not_allowed": {
+      "message": "{filename} está fora das pastas permitidas (allowlist_external_dirs)"
+    },
+    "screenshot_failed": {
+      "message": "A TV não devolveu a captura de tela"
+    },
+    "auth_failed": {
+      "message": "A TV não aceita mais a chave de pareamento"
+    }
+  },
+  "services": {
+    "button": {
+      "name": "Apertar botão",
+      "description": "Aperta uma tecla do controle remoto.",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "A TV a controlar."
+        },
+        "button": {
+          "name": "Botão",
+          "description": "Nome da tecla, ex.: HOME, BACK, ENTER, UP, MENU."
+        }
+      }
+    },
+    "command": {
+      "name": "Enviar comando",
+      "description": "Envia uma requisição SSAP e devolve a resposta.",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "A TV a controlar."
+        },
+        "command": {
+          "name": "Comando",
+          "description": "URI SSAP sem o prefixo ssap://."
+        },
+        "payload": {
+          "name": "Dados",
+          "description": "Dados da requisição."
+        }
+      }
+    },
+    "luna": {
+      "name": "Chamar método luna",
+      "description": "Chama um método luna interno por meio de um alerta do sistema. Não há resposta.",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "A TV a controlar."
+        },
+        "uri": {
+          "name": "URI",
+          "description": "URI luna:// completa."
+        },
+        "params": {
+          "name": "Parâmetros",
+          "description": "Parâmetros do método."
+        }
+      }
+    },
+    "set_system_settings": {
+      "name": "Alterar configurações do sistema",
+      "description": "Grava configurações da TV de qualquer categoria (picture, sound, option, network, other...).",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "A TV a controlar."
+        },
+        "category": {
+          "name": "Categoria",
+          "description": "Categoria das configurações."
+        },
+        "settings": {
+          "name": "Configurações",
+          "description": "Chaves e valores a gravar."
+        }
+      }
+    },
+    "launch_app": {
+      "name": "Abrir aplicativo",
+      "description": "Abre um aplicativo, opcionalmente em um conteúdo.",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "A TV a controlar."
+        },
+        "app_id": {
+          "name": "ID do aplicativo",
+          "description": "ID do aplicativo no webOS."
+        },
+        "content_id": {
+          "name": "ID do conteúdo",
+          "description": "Link interno que o aplicativo entende."
+        },
+        "params": {
+          "name": "Parâmetros",
+          "description": "Parâmetros de abertura."
+        }
+      }
+    },
+    "type_text": {
+      "name": "Digitar texto",
+      "description": "Digita no campo de texto em foco (o teclado da TV precisa estar aberto).",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "A TV a controlar."
+        },
+        "text": {
+          "name": "Texto",
+          "description": "Texto a digitar."
+        },
+        "replace": {
+          "name": "Substituir",
+          "description": "Substitui o que já está no campo."
+        }
+      }
+    },
+    "screenshot": {
+      "name": "Capturar tela",
+      "description": "Salva o que está na tela em um arquivo JPEG.",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "A TV a controlar."
+        },
+        "filename": {
+          "name": "Arquivo",
+          "description": "Onde salvar, dentro de uma pasta permitida."
+        }
+      }
+    }
+  }
+}

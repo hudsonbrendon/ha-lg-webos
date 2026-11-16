@@ -1,0 +1,88 @@
+button:
+  fields:
+    device_id: &id001
+      required: true
+      selector:
+        device:
+          integration: lg_webos
+    button:
+      required: true
+      example: HOME
+      selector:
+        text:
+command:
+  fields:
+    device_id: *id001
+    command:
+      required: true
+      example: system.launcher/open
+      selector:
+        text:
+    payload:
+      required: false
+      example: 'target: https://www.home-assistant.io'
+      selector:
+        object:
+luna:
+  fields:
+    device_id: *id001
+    uri:
+      required: true
+      example: luna://com.webos.service.tvpower/power/turnOnScreenSaver
+      selector:
+        text:
+    params:
+      required: false
+      selector:
+        object:
+set_system_settings:
+  fields:
+    device_id: *id001
+    category:
+      required: true
+      example: picture
+      selector:
+        text:
+    settings:
+      required: true
+      example: 'pictureMode: cinema'
+      selector:
+        object:
+launch_app:
+  fields:
+    device_id: *id001
+    app_id:
+      required: true
+      example: youtube.leanback.v4
+      selector:
+        text:
+    content_id:
+      required: false
+      example: v=dQw4w9WgXcQ
+      selector:
+        text:
+    params:
+      required: false
+      selector:
+        object:
+type_text:
+  fields:
+    device_id: *id001
+    text:
+      required: true
+      example: Home Assistant
+      selector:
+        text:
+    replace:
+      required: false
+      default: false
+      selector:
+        boolean:
+screenshot:
+  fields:
+    device_id: *id001
+    filename:
+      required: true
+      example: /config/www/tv.jpg
+      selector:
+        text:

@@ -1,0 +1,127 @@
+{
+  "entity": {
+    "button": {
+      "screen_saver": {
+        "default": "mdi:television-ambient-light"
+      },
+      "input_picker": {
+        "default": "mdi:video-input-hdmi"
+      }
+    },
+    "image": {
+      "screen": {
+        "default": "mdi:monitor-screenshot"
+      }
+    },
+    "notify": {
+      "toast": {
+        "default": "mdi:message-badge"
+      }
+    },
+    "number": {
+      "backlight": {
+        "default": "mdi:brightness-7"
+      },
+      "contrast": {
+        "default": "mdi:contrast-circle"
+      },
+      "brightness": {
+        "default": "mdi:brightness-6"
+      },
+      "color": {
+        "default": "mdi:palette"
+      }
+    },
+    "remote": {
+      "remote": {
+        "default": "mdi:remote-tv"
+      }
+    },
+    "select": {
+      "sound_output": {
+        "default": "mdi:speaker"
+      }
+    },
+    "sensor": {
+      "power_on_reason": {
+        "default": "mdi:power-plug"
+      },
+      "network": {
+        "default": "mdi:wifi"
+      },
+      "ip_address": {
+        "default": "mdi:ip-network"
+      },
+      "power_state": {
+        "default": "mdi:power"
+      },
+      "app": {
+        "default": "mdi:apps"
+      },
+      "input": {
+        "default": "mdi:video-input-hdmi"
+      },
+      "channel": {
+        "default": "mdi:television-classic"
+      },
+      "firmware": {
+        "default": "mdi:chip"
+      },
+      "webos_version": {
+        "default": "mdi:information-outline"
+      },
+      "input_device": {
+        "default": "mdi:hdmi-port"
+      }
+    },
+    "switch": {
+      "screen": {
+        "default": "mdi:television",
+        "state": {
+          "off": "mdi:television-off"
+        }
+      },
+      "simplinkenable": {
+        "default": "mdi:hdmi-port"
+      },
+      "wolwowlonoff": {
+        "default": "mdi:lan-connect"
+      },
+      "bleadvertisingonoff": {
+        "default": "mdi:bluetooth"
+      },
+      "audioguidance": {
+        "default": "mdi:account-voice"
+      },
+      "liveplus": {
+        "default": "mdi:eye-off"
+      },
+      "earcsupport": {
+        "default": "mdi:surround-sound"
+      }
+    }
+  },
+  "services": {
+    "button": {
+      "service": "mdi:remote-tv"
+    },
+    "command": {
+      "service": "mdi:console"
+    },
+    "luna": {
+      "service": "mdi:moon-waning-crescent"
+    },
+    "set_system_settings": {
+      "service": "mdi:cog"
+    },
+    "launch_app": {
+      "service": "mdi:apps"
+    },
+    "type_text": {
+      "service": "mdi:keyboard"
+    },
+    "screenshot": {
+      "service": "mdi:monitor-screenshot"
+    }
+  }
+}

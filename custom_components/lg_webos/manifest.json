@@ -1,0 +1,16 @@
+{
+  "domain": "lg_webos",
+  "name": "LG webOS",
+  "after_dependencies": ["webostv"],
+  "codeowners": ["@hudsonbrendon"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/hudsonbrendon/ha-lg-webos",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/hudsonbrendon/ha-lg-webos/issues",
+  "loggers": ["aiowebostv"],
+  "requirements": ["aiowebostv==1.0.1"],
+  "ssdp": [{ "st": "urn:lge-com:service:webos-second-screen:1" }],
+  "version": "0.1.0"
+}
