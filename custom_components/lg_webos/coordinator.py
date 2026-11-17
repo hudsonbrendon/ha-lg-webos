@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
-from aiowebostv import WebOsTvPairError
+from aiowebostv import WebOsTvCommandError, WebOsTvPairError
 from homeassistant.const import CONF_CLIENT_SECRET, CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
@@ -116,11 +116,17 @@ class LgWebosCoordinator(DataUpdateCoordinator[None]):
             firmware,
             LUNA_PROBE_VERSION,
         ):
-            data[CONF_LUNA] = {
-                "firmware": firmware,
-                "version": LUNA_PROBE_VERSION,
-                "allowed": await self.tv.probe_luna(),
-            }
+            try:
+                allowed = await self.tv.probe_luna()
+            except WebOsTvCommandError:
+                # Not a clear answer (TV still waking up): ask on next connect.
+                LOGGER.debug("%s: luna probe inconclusive, retrying later", self.name)
+            else:
+                data[CONF_LUNA] = {
+                    "firmware": firmware,
+                    "version": LUNA_PROBE_VERSION,
+                    "allowed": allowed,
+                }
         await self._sync_ip_control(data)
         if self.client.client_key:
             data[CONF_CLIENT_SECRET] = self.client.client_key
@@ -146,8 +152,13 @@ class LgWebosCoordinator(DataUpdateCoordinator[None]):
 
     async def _sync_ip_control(self, data: dict[str, Any]) -> None:
         """Turn LG IP Control on or off on the TV to match the options."""
-        wanted = self.config_entry.options.get(CONF_IP_CONTROL, False)
+        options = self.config_entry.options
+        wanted = options.get(CONF_IP_CONTROL, False)
         code = data.get(CONF_IP_CONTROL_CODE)
+        if wanted and (given := options.get(CONF_IP_CONTROL_CODE)) and given != code:
+            # A key code already generated on the TV menu: use it as is.
+            data[CONF_IP_CONTROL_CODE] = given
+            return
         if wanted and not code:
             if "ip_control" not in data.get(CONF_LUNA, {}).get("allowed", []):
                 return

@@ -31,7 +31,14 @@ from homeassistant.helpers.service_info.ssdp import (
 import voluptuous as vol
 
 from .api import LgWebosClient, LgWebosTv
-from .const import CONF_IP_CONTROL, CONF_MACS, DOMAIN, NATIVE_DOMAIN, WEBOS_EXCEPTIONS
+from .const import (
+    CONF_IP_CONTROL,
+    CONF_IP_CONTROL_CODE,
+    CONF_MACS,
+    DOMAIN,
+    NATIVE_DOMAIN,
+    WEBOS_EXCEPTIONS,
+)
 
 DEFAULT_NAME = "LG webOS TV"
 CONF_ENTRIES = "entries"
@@ -264,6 +271,14 @@ class LgWebosOptionsFlow(OptionsFlowWithReload):
                         CONF_IP_CONTROL,
                         default=self.config_entry.options.get(CONF_IP_CONTROL, False),
                     ): bool,
+                    vol.Optional(
+                        CONF_IP_CONTROL_CODE,
+                        description={
+                            "suggested_value": self.config_entry.options.get(
+                                CONF_IP_CONTROL_CODE
+                            )
+                        },
+                    ): vol.All(str, vol.Upper, vol.Match(r"^[A-Z0-9]{8}$")),
                 }
             ),
         )

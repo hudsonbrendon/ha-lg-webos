@@ -4,9 +4,11 @@
       "init": {
         "title": "Options",
         "data": {
-          "ip_control": "LG IP Control"
+          "ip_control": "LG IP Control",
+          "ip_control_code": "Existing key code"
         },
         "data_description": {
+          "ip_control_code": "Only if a key was already generated on the TV menu (8 characters). Leave empty to let the integration create one.",
           "ip_control": "Turns on the TV's IP Control service (TCP 9761) with a key generated here. Adds remote lock, aspect ratio and the ip_control action."
         }
       }

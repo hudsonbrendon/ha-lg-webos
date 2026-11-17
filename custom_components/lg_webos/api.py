@@ -277,7 +277,7 @@ LUNA_FEATURES: dict[str, str] = {
     "ip_control": LUNA_IP_CONTROL_START,
 }
 # Bump when LUNA_FEATURES changes, so existing entries probe again.
-LUNA_PROBE_VERSION = 2
+LUNA_PROBE_VERSION = 3
 
 
 def send_magic_packet(macs: list[str], broadcast: str = "255.255.255.255") -> None:
@@ -466,8 +466,13 @@ class LgWebosTv:
                 CREATE_ALERT,
                 {"message": " ", "buttons": [{"label": "", "onClick": uri}]},
             )
-        except WebOsTvCommandError:
-            return False
+        except WebOsTvCommandError as err:
+            # Only an explicit refusal counts. Anything else (TV still waking
+            # up, alert service busy) leaves the question open: raise, so the
+            # probe is not stored and runs again on the next connect.
+            if "Not allowed" in str(err):
+                return False
+            raise
         if alert_id := res.get("alertId"):
             await self.client.request(CLOSE_ALERT, {"alertId": alert_id})
         return True

@@ -3,6 +3,7 @@
 import hashlib
 from unittest.mock import patch
 
+from aiowebostv import WebOsTvCommandError
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 import pytest
@@ -74,7 +75,7 @@ async def test_entities(hass, client, entry):
     # CEC is allowed and the PS5 answers on CEC.
     assert entry.data["luna"] == {
         "firmware": "04.64.00",
-        "version": 2,
+        "version": 3,
         "allowed": ["settings", "cec", "ip_control"],
     }
     assert [i for i in ids if i.startswith("button.")] == [
@@ -380,3 +381,29 @@ def test_ip_control_cipher():
         16384,
         16,
     )
+
+
+async def test_ip_control_existing_code(hass, client, entry):
+    """A key code typed in the options is used as is, nothing sent to the TV."""
+    hass.config_entries.async_update_entry(
+        entry, options={"ip_control": True, "ip_control_code": "ABCD1234"}
+    )
+    await setup(hass, entry)
+    assert entry.data["ip_control_code"] == "ABCD1234"
+    assert not any(c[1].get("category") == "option" for c in luna_calls(client))
+
+
+async def test_luna_probe_not_stored_when_tv_busy(hass, entry):
+    """Alerts failing for another reason than a refusal keep the probe open."""
+    fake = make_client()
+    original = fake.request.side_effect
+
+    async def busy(uri, payload=None, **kwargs):
+        if uri == "system.notifications/createAlert" and "onclose" not in payload:
+            raise WebOsTvCommandError("500 Application error")
+        return await original(uri, payload, **kwargs)
+
+    fake.request.side_effect = busy
+    with patch("custom_components.lg_webos.LgWebosClient", return_value=fake):
+        await setup(hass, entry)
+    assert "luna" not in entry.data

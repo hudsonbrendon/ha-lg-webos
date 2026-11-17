@@ -4,9 +4,11 @@
       "init": {
         "title": "Opções",
         "data": {
-          "ip_control": "LG IP Control"
+          "ip_control": "LG IP Control",
+          "ip_control_code": "Chave já existente"
         },
         "data_description": {
+          "ip_control_code": "Só se uma chave já foi gerada no menu da TV (8 caracteres). Deixe vazio para a integração criar uma.",
           "ip_control": "Liga o serviço IP Control da TV (TCP 9761) com uma chave gerada aqui. Adiciona bloqueio do controle remoto, proporção de tela e a ação ip_control."
         }
       }
