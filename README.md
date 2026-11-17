@@ -1,10 +1,17 @@
-<p align="center"><img src="assets/lg.png" alt="LG" height="90"></p>
+<p align="center">
+  <img src="custom_components/lg_webos/brand/logo@2x.png" alt="LG webOS" height="128">
+</p>
 
 # LG webOS for Home Assistant
 
 [![Tests](https://github.com/hudsonbrendon/ha-lg-webos/actions/workflows/tests.yml/badge.svg)](https://github.com/hudsonbrendon/ha-lg-webos/actions/workflows/tests.yml)
-[![hassfest](https://github.com/hudsonbrendon/ha-lg-webos/actions/workflows/hassfest.yml/badge.svg)](https://github.com/hudsonbrendon/ha-lg-webos/actions/workflows/hassfest.yml)
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz)
+[![Hassfest](https://github.com/hudsonbrendon/ha-lg-webos/actions/workflows/hassfest.yml/badge.svg)](https://github.com/hudsonbrendon/ha-lg-webos/actions/workflows/hassfest.yml)
+[![HACS](https://github.com/hudsonbrendon/ha-lg-webos/actions/workflows/validate.yml/badge.svg)](https://github.com/hudsonbrendon/ha-lg-webos/actions/workflows/validate.yml)
+[![Release](https://img.shields.io/github/v/release/hudsonbrendon/ha-lg-webos?sort=semver)](https://github.com/hudsonbrendon/ha-lg-webos/releases)
+[![Downloads](https://img.shields.io/github/downloads/hudsonbrendon/ha-lg-webos/total)](https://github.com/hudsonbrendon/ha-lg-webos/releases)
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.10.0%2B-18BCF2?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
+[![License](https://img.shields.io/github/license/hudsonbrendon/ha-lg-webos)](LICENSE)
 
 Local, push-based integration for LG webOS TVs that exposes what the built-in
 **LG webOS TV** (`webostv`) integration leaves out. It runs next to the built-in
@@ -51,6 +58,9 @@ Newer webOS lets a client read far more settings, so the entity set grows with
 the firmware. Other models set up the same way.
 
 ## Installation
+
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=hudsonbrendon&repository=ha-lg-webos&category=integration)
+[![Add integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=lg_webos)
 
 HACS / Marketplace → custom repository `hudsonbrendon/ha-lg-webos` (integration),
 install, restart Home Assistant.
