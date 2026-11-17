@@ -1,4 +1,17 @@
 {
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opções",
+        "data": {
+          "ip_control": "LG IP Control"
+        },
+        "data_description": {
+          "ip_control": "Liga o serviço IP Control da TV (TCP 9761) com uma chave gerada aqui. Adiciona bloqueio do controle remoto, proporção de tela e a ação ip_control."
+        }
+      }
+    }
+  },
   "config": {
     "flow_title": "{name} ({host})",
     "step": {
@@ -56,6 +69,9 @@
       },
       "internet": {
         "name": "Internet"
+      },
+      "bluetooth": {
+        "name": "Bluetooth"
       }
     },
     "button": {
@@ -64,6 +80,9 @@
       },
       "input_picker": {
         "name": "Seletor de entradas"
+      },
+      "cec_power": {
+        "name": "Ligar/desligar aparelho na {input} (CEC)"
       }
     },
     "image": {
@@ -97,6 +116,9 @@
       },
       "colortemperature": {
         "name": "Temperatura de cor"
+      },
+      "ontimervolume": {
+        "name": "Volume ao ligar pelo timer"
       }
     },
     "remote": {
@@ -168,6 +190,9 @@
       },
       "lifeonscreenmode": {
         "name": "Sempre pronta"
+      },
+      "aspect_ratio": {
+        "name": "Proporção de tela"
       }
     },
     "sensor": {
@@ -197,6 +222,9 @@
       },
       "ip_address": {
         "name": "Endereço IP"
+      },
+      "usb_storage": {
+        "name": "Armazenamento USB"
       },
       "input_device": {
         "name": "Dispositivo na {input}"
@@ -253,10 +281,30 @@
       },
       "uhd_deep_color": {
         "name": "Deep Color {input}"
+      },
+      "ontimerenable": {
+        "name": "Timer de ligar"
+      },
+      "offtimerenable": {
+        "name": "Timer de desligar"
+      },
+      "remote_lock": {
+        "name": "Bloquear controle remoto"
+      }
+    },
+    "time": {
+      "ontimer_time": {
+        "name": "Horário do timer de ligar"
+      },
+      "offtimer_time": {
+        "name": "Horário do timer de desligar"
       }
     }
   },
   "exceptions": {
+    "ip_control_off": {
+      "message": "O LG IP Control está desligado nesta TV (ative nas opções da integração)"
+    },
     "command_failed": {
       "message": "A TV não aceitou o comando: {error}"
     },
@@ -391,6 +439,38 @@
         "replace": {
           "name": "Substituir",
           "description": "Substitui o que já está no campo."
+        }
+      }
+    },
+    "cec_key": {
+      "name": "Apertar tecla no aparelho HDMI (CEC)",
+      "description": "Envia uma tecla de controle ao aparelho numa entrada HDMI por HDMI-CEC (o SIMPLINK precisa estar ligado).",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "A TV a controlar."
+        },
+        "input": {
+          "name": "Entrada",
+          "description": "ID da entrada, ex.: HDMI_2."
+        },
+        "key": {
+          "name": "Tecla",
+          "description": "Tecla a apertar."
+        }
+      }
+    },
+    "ip_control": {
+      "name": "Enviar comando LG IP Control",
+      "description": "Envia um comando LG IP Control (TCP 9761) e devolve a resposta.",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "A TV a controlar."
+        },
+        "command": {
+          "name": "Comando",
+          "description": "ex.: CURRENT_VOL, KEY_ACTION exit, PICTURE_MODE cinema."
         }
       }
     },

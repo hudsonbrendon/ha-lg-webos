@@ -16,11 +16,17 @@ INPUTS = [
     {
         "id": "HDMI_2",
         "label": "PS5",
+        "port": 2,
         "appId": "com.webos.app.hdmi2",
         "hdmiPlugIn": True,
         "activate": True,
         "subList": [
-            {"id": "SIMPLINK", "osdName": "PlayStation 5", "vendorId": 524358},
+            {
+                "id": "SIMPLINK",
+                "osdName": "PlayStation 5",
+                "vendorId": 524358,
+                "uniqueId": 4,
+            },
             {"id": "URCU", "serviceType": "game", "brandName": "PS5"},
         ],
     },
@@ -48,6 +54,22 @@ PUSHES = {
         "HDMI2": {"5v": "TRUE", "signal": "TRUE"}
     },
     "com.webos.service.tvpower/power/getPowerOnReason": {"reason": "wakeOnWiFi"},
+    "com.webos.service.attachedstoragemanager/listDevices": {
+        "devices": [
+            {"deviceType": "internal sample music", "deviceName": "SAMPLE"},
+            {"deviceType": "usb", "deviceName": "PENDRIVE"},
+        ]
+    },
+    "com.webos.service.bluetooth/gap/isRadioOn": {"radioOn": True},
+}
+TIMERS = {
+    "onTimerEnable": "off",
+    "offTimerEnable": "on",
+    "onTimerHour": "7",
+    "onTimerMinute": "30",
+    "offTimerHour": "23",
+    "offTimerMinute": "0",
+    "onTimerVolume": "10",
 }
 
 
@@ -108,6 +130,9 @@ def make_client(on: bool = True) -> MagicMock:
                 )
             client.subscriptions[category] = callback
             await callback({"settings": dict(known)})
+        elif uri == "timer/getSettings":
+            client.subscriptions["time"] = callback
+            await callback({"settings": dict(TIMERS)})
         else:
             client.subscriptions[uri] = callback
             await callback(PUSHES[uri])
@@ -183,8 +208,10 @@ def client():
     """Patch the client everywhere it is built."""
     fake = make_client()
     with (
-        patch("custom_components.lg_webos.WebOsClient", return_value=fake),
-        patch("custom_components.lg_webos.config_flow.WebOsClient", return_value=fake),
+        patch("custom_components.lg_webos.LgWebosClient", return_value=fake),
+        patch(
+            "custom_components.lg_webos.config_flow.LgWebosClient", return_value=fake
+        ),
     ):
         yield fake
 

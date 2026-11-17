@@ -25,10 +25,13 @@ PLATFORMS: Final = [
     Platform.SELECT,
     Platform.SENSOR,
     Platform.SWITCH,
+    Platform.TIME,
 ]
 
 CONF_MACS: Final = "macs"
 CONF_LUNA: Final = "luna"
+CONF_IP_CONTROL: Final = "ip_control"
+CONF_IP_CONTROL_CODE: Final = "ip_control_code"
 
 LIVE_TV_APP_ID: Final = "com.webos.app.livetv"
 
@@ -59,6 +62,8 @@ ATTR_CONTENT_ID: Final = "content_id"
 ATTR_TEXT: Final = "text"
 ATTR_REPLACE: Final = "replace"
 ATTR_FILENAME: Final = "filename"
+ATTR_INPUT: Final = "input"
+ATTR_KEY: Final = "key"
 
 SERVICE_BUTTON: Final = "button"
 SERVICE_COMMAND: Final = "command"
@@ -67,9 +72,12 @@ SERVICE_SET_SETTINGS: Final = "set_system_settings"
 SERVICE_LAUNCH_APP: Final = "launch_app"
 SERVICE_TYPE_TEXT: Final = "type_text"
 SERVICE_SCREENSHOT: Final = "screenshot"
+SERVICE_CEC_KEY: Final = "cec_key"
+SERVICE_IP_CONTROL: Final = "ip_control"
 
 WEBOS_EXCEPTIONS: Final = (
-    ConnectionResetError,
+    OSError,
+    ValueError,
     WebOsTvCommandError,
     aiohttp.ClientError,
     TimeoutError,

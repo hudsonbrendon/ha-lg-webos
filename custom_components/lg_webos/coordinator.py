@@ -6,14 +6,28 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from aiowebostv import WebOsTvPairError
-from homeassistant.const import CONF_CLIENT_SECRET
+from homeassistant.const import CONF_CLIENT_SECRET, CONF_HOST
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .api import LgWebosTv, send_magic_packet
-from .const import CONF_LUNA, CONF_MACS, DOMAIN, LOGGER, WEBOS_EXCEPTIONS
+from .api import (
+    LUNA_PROBE_VERSION,
+    IpControl,
+    LgWebosTv,
+    new_ip_control_code,
+    send_magic_packet,
+)
+from .const import (
+    CONF_IP_CONTROL,
+    CONF_IP_CONTROL_CODE,
+    CONF_LUNA,
+    CONF_MACS,
+    DOMAIN,
+    LOGGER,
+    WEBOS_EXCEPTIONS,
+)
 
 if TYPE_CHECKING:
     from . import LgWebosConfigEntry
@@ -74,7 +88,10 @@ class LgWebosCoordinator(DataUpdateCoordinator[None]):
             return
         try:
             await self.tv.async_subscribe(self._async_push)
+            if sent := await self.tv.flush_pending():
+                LOGGER.debug("%s: applied queued settings %s", self.name, sent)
             await self._remember()
+            self._store.async_delay_save(self.tv.snapshot, 0)
         except WEBOS_EXCEPTIONS:
             # Went back to sleep mid-setup; the next tick starts over.
             await self.client.disconnect()
@@ -94,17 +111,63 @@ class LgWebosCoordinator(DataUpdateCoordinator[None]):
         firmware = self.tv.configs.get("tv.nyx.firmwareVersion")
         # ponytail: probed once per firmware version, since each probe pops a
         # blank alert on screen for an instant.
-        if data.get(CONF_LUNA, {}).get("firmware") != firmware:
+        known = data.get(CONF_LUNA, {})
+        if (known.get("firmware"), known.get("version")) != (
+            firmware,
+            LUNA_PROBE_VERSION,
+        ):
             data[CONF_LUNA] = {
                 "firmware": firmware,
+                "version": LUNA_PROBE_VERSION,
                 "allowed": await self.tv.probe_luna(),
             }
+        await self._sync_ip_control(data)
         if self.client.client_key:
             data[CONF_CLIENT_SECRET] = self.client.client_key
         if macs := self.tv.macs:
             data[CONF_MACS] = macs
         if data != entry.data:
             self.hass.config_entries.async_update_entry(entry, data=data)
+
+    @property
+    def ip_control(self) -> IpControl | None:
+        """LG IP Control client, when it is turned on for this TV."""
+        if code := self.config_entry.data.get(CONF_IP_CONTROL_CODE):
+            return IpControl(self.config_entry.data[CONF_HOST], code)
+        return None
+
+    def require_ip_control(self) -> IpControl:
+        """The IP Control client, or a user-facing error when it is off."""
+        if (ip := self.ip_control) is None:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="ip_control_off"
+            )
+        return ip
+
+    async def _sync_ip_control(self, data: dict[str, Any]) -> None:
+        """Turn LG IP Control on or off on the TV to match the options."""
+        wanted = self.config_entry.options.get(CONF_IP_CONTROL, False)
+        code = data.get(CONF_IP_CONTROL_CODE)
+        if wanted and not code:
+            if "ip_control" not in data.get(CONF_LUNA, {}).get("allowed", []):
+                return
+            code = new_ip_control_code()
+            await self.tv.enable_ip_control(code)
+            client = IpControl(data[CONF_HOST], code)
+            try:
+                await client.send("GET_IPCONTROL_STATE")
+            except OSError, TimeoutError, ValueError:
+                # The service was already running with another key (set on
+                # the TV menu); it only rereads the key when the TV restarts.
+                LOGGER.warning(
+                    "%s: LG IP Control did not accept the new key; it will "
+                    "after the TV restarts",
+                    self.name,
+                )
+            data[CONF_IP_CONTROL_CODE] = code
+        elif not wanted and code:
+            await self.tv.disable_ip_control()
+            data.pop(CONF_IP_CONTROL_CODE)
 
     async def _async_push(self) -> None:
         self._store.async_delay_save(self.tv.snapshot, 30)

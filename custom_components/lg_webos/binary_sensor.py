@@ -30,6 +30,12 @@ async def async_setup_entry(
     async_add_dynamic(
         entry,
         async_add_entities,
+        lambda c: ["bluetooth"] if c.tv.bluetooth_on is not None else [],
+        lambda _: LgWebosBluetooth(coordinator),
+    )
+    async_add_dynamic(
+        entry,
+        async_add_entities,
         lambda c: (i["id"] for i in c.tv.inputs if "hdmiPlugIn" in i),
         lambda input_id: LgWebosInputPlugged(coordinator, input_id),
     )
@@ -52,6 +58,24 @@ class LgWebosInternet(LgWebosEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         """Internet reachability as the connection manager sees it."""
         return self.tv.network.get("isInternetConnectionAvailable")
+
+
+class LgWebosBluetooth(LgWebosEntity, BinarySensorEntity):
+    """Whether the TV's Bluetooth radio is on."""
+
+    _attr_translation_key = "bluetooth"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _needs = "nothing"
+
+    def __init__(self, coordinator: LgWebosCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.unique_id}_bluetooth"
+
+    @property
+    def is_on(self) -> bool | None:
+        """Radio state."""
+        return self.tv.bluetooth_on
 
 
 class LgWebosInputPlugged(LgWebosEntity, BinarySensorEntity):

@@ -29,6 +29,11 @@ Everything comes from probing real TVs over SSAP (the websocket API on ports
 | Media browser | no | apps, inputs and channels with icons |
 | Notify | legacy service | notify entity |
 | Internal (luna) calls | no | `luna` action, gated by what the firmware accepts |
+| On/off timers | no | switches, times and power-on volume |
+| Devices on HDMI | no | power button per CEC device, `cec_key` action |
+| LG IP Control (TCP 9761) | no | turned on from the options: remote lock, aspect ratio, `ip_control` action |
+| Changes while the TV is off | rejected | queued and applied when it wakes |
+| Settings webOS 5 cannot read | no | picture mode, energy saving and sound mode as write-only selects |
 | Setup | pairing prompt on the TV | imports the built-in pairing, even with the TV off |
 
 ## Tested on
@@ -81,6 +86,12 @@ TVs are also discovered over SSDP.
   screen at power on, always ready.
 - `sensor`: power state, power-on reason, app, input, channel, network, IP
   address, firmware, webOS version, and one per input with the device on it.
+- `time`: on and off timer times; with `switch` on/off timer and `number`
+  power-on volume.
+- `sensor` USB storage (count, names), `binary_sensor` Bluetooth radio.
+- `button`: power key of each device the TV sees on HDMI-CEC (toggles it).
+- With LG IP Control on: `switch` remote lock and `select` aspect ratio
+  (write only; the TV cannot report them).
 - `binary_sensor`: internet, and one per HDMI input (on while a powered device
   is plugged in, with a `signal` attribute).
 - `button`: restart, screen saver, input picker, only on firmware that accepts
@@ -98,6 +109,22 @@ TVs are also discovered over SSDP.
 | `lg_webos.launch_app` | open an app, optionally on a content id |
 | `lg_webos.type_text` | type into the focused text field |
 | `lg_webos.screenshot` | save the screen as a JPEG file |
+| `lg_webos.cec_key` | press a key on the device behind an HDMI input (HDMI-CEC) |
+| `lg_webos.ip_control` | send a raw LG IP Control command, returns the answer |
+
+## Options
+
+- **LG IP Control**: turns on the TV's IP Control service with a key the
+  integration generates and keeps. It stays on across TV restarts. If a key
+  was already generated on the TV menu, the new one only applies after the TV
+  restarts.
+
+## Extra permissions
+
+The integration pairs with a few permissions the built-in one does not ask
+for (timers, USB storage, Bluetooth, content state, recording state). The TV
+grants them silently when the existing key re-registers, so nothing has to be
+accepted on screen.
 
 ## Known limitations
 
@@ -114,6 +141,13 @@ TVs are also discovered over SSDP.
   Screen, screenshot, toast and sound output need the TV awake.
 - A TV in network standby refuses new connections: if Home Assistant restarts
   while it sleeps, the settings come back when the TV is next turned on.
+- Settings changed while the TV is off are kept and sent when Home Assistant
+  next connects; for TVs that keep the network up in standby they apply right
+  away.
+- CEC needs SIMPLINK on, and the device has to answer on CEC. The power key
+  toggles, so pressing it on a device that is already off turns it on.
+- Write-only selects show the last value sent from Home Assistant; a change
+  made with the remote is not seen.
 - Wake-on-LAN needs "Turn on via Wi-Fi/LAN" enabled on the TV (the Wake on LAN
   switch shows it).
 

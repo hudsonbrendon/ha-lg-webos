@@ -155,6 +155,46 @@ once per firmware version and only creates the buttons the TV accepts.
   input, picture mode. Not used here; wire framing was not decompiled.
 - **Other listeners**: DIAL 36866/18181, SSDP 1900, HbbTV 8000/8001 (B).
 
+## Extra permissions (live, A)
+
+A client that re-registers with its existing client key and a manifest asking
+for more non-SECURE permissions gets them **without a prompt**. With
+`CONTROL_TIMER_INFO`, `READ_STORAGE_DEVICE_LIST`, `CHECK_BLUETOOTH_DEVICE`,
+`READ_TV_CONTENT_STATE`, `CONTROL_RECORDING`, `CONTROL_USER_INFO` and
+`CONTROL_INPUT_JOYSTICK` added, these started answering: `timer/getSettings`
+(only as a subscription, a plain request never answers), `timer/setSettings`,
+`attachedstoragemanager/listDevices`, `bluetooth/gap/isRadioOn`,
+`tv/getContentState`, `utp.dvr/record/isRecording`, `user/getUserData` and
+`networkinput/getGamepadInputSocket`. Timer writes were verified with
+read-back.
+
+## HDMI-CEC (firmware + live, A)
+
+The EIM service exposes `cec/setCECUniqueId {uniqueId, hdmiPort}` (choose the
+target device) and `cec/sendKeyEvent {key}` (press a key on it). Both pass the
+alert gate; `requestVendorCommand` (raw opcodes), `cec/powerOn` and
+`cec/powerOff` do not. `key` is a webOS key code that `CKeyCode` (REA on
+`/usr/sbin/eim`) maps to a CEC UI command: 101 entries, e.g. `0x1000053` →
+Root Menu, `0x1202000` → Power, `0x1000004` → Select. Device unique ids come
+from `getAllInputStatus` (`subList[].id == "SIMPLINK"`). Verified on a Fire TV
+behind HDMI 3 with its own `dumpsys hdmi_control`: the key arrives as
+`<User Control Pressed>` only when that device is the selected target.
+
+## LG IP Control (firmware + live, A)
+
+`tvlink-network-proxy` listens on TCP 9761 once `option.enableIpControl` is
+`on`. It is started at boot, or on demand by any luna call to
+`com.webos.tnp` (a D-Bus dynamic service): `luna://com.webos.tnp/com/palm/luna/private/ping`
+passes the alert gate. The key comes from the setting
+`option.IPControlSecureKey`, read when the service starts, so a key written
+through the settings service works. Protocol, verified live: AES-128 key =
+PBKDF2-HMAC-SHA256(key code, fixed salt, 16384 rounds, 16 bytes); request =
+AES-ECB(IV) ‖ AES-CBC(IV, command + CR, PKCS#7-style padding); answer
+decrypted the same way, ending in LF. Queries `CURRENT_VOL`, `MUTE_STATE`,
+`CURRENT_APP`, `GET_MACADDRESS wired`, `GET_IPCONTROL_STATE` answer; writes
+answer `OK`; a command missing its argument gets no answer at all. There is
+no query for picture mode, so it cannot fill the webOS 5 read gap.
+
 ## Not known
 
 - `media.viewer/open` returned success on A but the result on screen was not

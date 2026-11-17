@@ -1,12 +1,17 @@
 """Setup, entities and actions against the fake TV."""
 
+import hashlib
 from unittest.mock import patch
 
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 import pytest
 
-from custom_components.lg_webos.api import LUNA_SET_SETTINGS, send_magic_packet
+from custom_components.lg_webos.api import (
+    LUNA_SET_SETTINGS,
+    IpControl,
+    send_magic_packet,
+)
 from custom_components.lg_webos.const import DOMAIN
 
 from .conftest import UUID, make_client
@@ -61,10 +66,26 @@ async def test_entities(hass, client, entry):
     ]
     # AV has no plug sensing; refused settings create nothing.
     assert "binary_sensor.tv_da_sala_av_1_plugged" not in ids
-    assert not any("picture_mode" in i for i in ids)
-    # This firmware refuses the power luna calls: no buttons for them.
-    assert entry.data["luna"] == {"firmware": "04.64.00", "allowed": ["settings"]}
-    assert not any(i.startswith("button.") for i in ids)
+    # Picture mode cannot be read on webOS 5: a write-only select instead.
+    picture_mode = hass.states.get("select.tv_da_sala_picture_mode")
+    assert picture_mode.state == "unknown"
+    assert picture_mode.attributes["assumed_state"]
+    # This firmware refuses the power luna calls: no buttons for them, but
+    # CEC is allowed and the PS5 answers on CEC.
+    assert entry.data["luna"] == {
+        "firmware": "04.64.00",
+        "version": 2,
+        "allowed": ["settings", "cec", "ip_control"],
+    }
+    assert [i for i in ids if i.startswith("button.")] == [
+        "button.tv_da_sala_hdmi_2_power_cec"
+    ]
+    # Extra permissions: timers, USB storage, Bluetooth.
+    assert state("switch.tv_da_sala_off_timer") == "on"
+    assert state("time.tv_da_sala_on_timer_time") == "07:30:00"
+    assert state("number.tv_da_sala_timer_power_on_volume") == "10.0"
+    assert state("sensor.tv_da_sala_usb_storage") == "1"
+    assert state("binary_sensor.tv_da_sala_bluetooth") == "on"
     device = dr.async_get(hass).async_get_device_by_identifier(
         (DOMAIN, UUID), entry.entry_id
     )
@@ -115,7 +136,7 @@ async def test_tv_off(hass, entry, hass_storage):
         },
     }
     fake = make_client(on=False)
-    with patch("custom_components.lg_webos.WebOsClient", return_value=fake):
+    with patch("custom_components.lg_webos.LgWebosClient", return_value=fake):
         await setup(hass, entry)
     assert hass.states.get("media_player.tv_da_sala").state == "off"
     # Read-only entities keep the last value; controls need the TV.
@@ -123,7 +144,16 @@ async def test_tv_off(hass, entry, hass_storage):
     assert hass.states.get("sensor.tv_da_sala_hdmi_2_device").state == "PS5"
     assert hass.states.get("binary_sensor.tv_da_sala_internet").state == "on"
     assert hass.states.get("sensor.tv_da_sala_power_state").state == "unknown"
-    assert hass.states.get("number.tv_da_sala_brightness").state == "unavailable"
+    # Settings keep their value and take changes, which wait for the TV.
+    assert hass.states.get("number.tv_da_sala_brightness").state == "50.0"
+    await hass.services.async_call(
+        "number",
+        "set_value",
+        {"entity_id": "number.tv_da_sala_brightness", "value": 40},
+        blocking=True,
+    )
+    assert hass.states.get("number.tv_da_sala_brightness").state == "40.0"
+    assert entry.runtime_data.tv.pending == {"picture": {"brightness": 40}}
     assert hass.states.get("switch.tv_da_sala_screen").state == "unavailable"
     with patch("custom_components.lg_webos.coordinator.send_magic_packet") as wol:
         await hass.services.async_call(
@@ -241,3 +271,112 @@ async def test_network_standby(hass, client, entry):
         blocking=True,
     )
     assert luna_calls(client)[-1][1]["settings"] == {"brightness": 40}
+
+
+async def test_queue_applied_on_connect(hass, entry, hass_storage):
+    """Writes queued while the TV was off go out as soon as it connects."""
+    hass_storage[f"{DOMAIN}.{entry.entry_id}"] = {
+        "version": 1,
+        "data": {"pending": {"picture": {"brightness": 40}}},
+    }
+    fake = make_client()
+    with patch("custom_components.lg_webos.LgWebosClient", return_value=fake):
+        await setup(hass, entry)
+    assert (
+        LUNA_SET_SETTINGS,
+        {"category": "picture", "settings": {"brightness": 40}},
+    ) in luna_calls(fake)
+    assert entry.runtime_data.tv.pending == {}
+
+
+async def test_timer_time_write(hass, client, entry):
+    """Setting a timer time writes hour and minute as strings."""
+    await setup(hass, entry)
+    await hass.services.async_call(
+        "time",
+        "set_value",
+        {"entity_id": "time.tv_da_sala_off_timer_time", "time": "22:45:00"},
+        blocking=True,
+    )
+    assert luna_calls(client)[-1] == (
+        LUNA_SET_SETTINGS,
+        {
+            "category": "time",
+            "settings": {"offTimerHour": "22", "offTimerMinute": "45"},
+        },
+    )
+
+
+async def test_cec(hass, client, entry):
+    """CEC keys pick the device first, then send the key code."""
+    await setup(hass, entry)
+    await hass.services.async_call(
+        "button",
+        "press",
+        {"entity_id": "button.tv_da_sala_hdmi_2_power_cec"},
+        blocking=True,
+    )
+    assert luna_calls(client)[-2:] == [
+        (
+            "luna://com.webos.service.eim/cec/setCECUniqueId",
+            {"uniqueId": 4, "hdmiPort": 2},
+        ),
+        ("luna://com.webos.service.eim/cec/sendKeyEvent", {"key": 0x1202000}),
+    ]
+    device = dr.async_get(hass).async_get_device_by_identifier(
+        (DOMAIN, UUID), entry.entry_id
+    )
+    await hass.services.async_call(
+        DOMAIN,
+        "cec_key",
+        {"device_id": device.id, "input": "hdmi_2", "key": "home"},
+        blocking=True,
+    )
+    assert luna_calls(client)[-1][1] == {"key": 0x1000053}
+
+
+async def test_ip_control_option(hass, client, entry):
+    """Turning the option on enables IP Control on the TV with a fresh key."""
+    hass.config_entries.async_update_entry(entry, options={"ip_control": True})
+    with patch(
+        "custom_components.lg_webos.coordinator.IpControl.send", return_value="ON"
+    ):
+        await setup(hass, entry)
+    code = entry.data["ip_control_code"]
+    assert len(code) == 8
+    calls = luna_calls(client)
+    assert (
+        LUNA_SET_SETTINGS,
+        {
+            "category": "option",
+            "settings": {"IPControlSecureKey": code, "enableIpControl": "on"},
+        },
+    ) in calls
+    assert ("luna://com.webos.tnp/com/palm/luna/private/ping", {}) in calls
+    assert hass.states.get("switch.tv_da_sala_remote_lock").state == "off"
+    with patch(
+        "custom_components.lg_webos.api.IpControl.send", return_value="OK"
+    ) as send:
+        await hass.services.async_call(
+            "switch",
+            "turn_on",
+            {"entity_id": "switch.tv_da_sala_remote_lock"},
+            blocking=True,
+        )
+    send.assert_awaited_once_with("REMOTECONTROLLER_LOCK on")
+    assert hass.states.get("switch.tv_da_sala_remote_lock").state == "on"
+
+
+def test_ip_control_cipher():
+    """Round trip, and the PBKDF2 key matches the TV's (live answer VOL:32)."""
+    ip = IpControl("192.0.2.1", "ABCD1234")
+    blob = ip.encrypt("CURRENT_VOL", iv=bytes(16))
+    assert len(blob) == 32
+    assert ip.decrypt(blob) == "CURRENT_VOL"
+    assert ip._key == hashlib.pbkdf2_hmac(
+        "sha256",
+        b"ABCD1234",
+        bytes.fromhex("6361b80e9bdca6638d0720f2cc568fb9"),
+        16384,
+        16,
+    )

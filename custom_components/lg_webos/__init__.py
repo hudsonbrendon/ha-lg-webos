@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from aiowebostv import WebOsClient
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_CLIENT_SECRET, CONF_HOST
 from homeassistant.core import HomeAssistant
@@ -13,7 +12,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 
-from .api import LgWebosTv
+from .api import LgWebosClient, LgWebosTv
 from .const import DOMAIN, PLATFORMS
 from .coordinator import LgWebosCoordinator
 from .services import async_setup_services
@@ -31,7 +30,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: LgWebosConfigEntry) -> bool:
     """Set up a TV from a config entry."""
-    client = WebOsClient(
+    client = LgWebosClient(
         entry.data[CONF_HOST],
         entry.data[CONF_CLIENT_SECRET],
         client_session=async_get_clientsession(hass),

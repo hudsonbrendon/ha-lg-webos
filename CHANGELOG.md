@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0 - 2026-11-16
+
+- Pairs with extra permissions (granted silently): on/off timers as switches,
+  times and a power-on volume; USB storage sensor; Bluetooth sensor.
+- Setting changes made while the TV is off are queued and applied when it
+  connects again; settings entities stay usable while it is off.
+- Write-only picture mode, energy saving and sound mode on webOS 5, which
+  cannot read them.
+- HDMI-CEC: power button per device on an input and a `cec_key` action.
+- LG IP Control option: enables the TV's TCP 9761 service with a generated
+  key; remote lock switch, aspect ratio select and an `ip_control` action.
+
 ## 0.1.1 - 2026-11-16
 
 - Require `aiowebostv>=1.0.1` instead of pinning it: Home Assistant ships the

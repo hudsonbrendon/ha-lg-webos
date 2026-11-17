@@ -6,6 +6,17 @@
       },
       "input_picker": {
         "default": "mdi:video-input-hdmi"
+      },
+      "cec_power": {
+        "default": "mdi:power"
+      }
+    },
+    "time": {
+      "ontimer_time": {
+        "default": "mdi:timer-play"
+      },
+      "offtimer_time": {
+        "default": "mdi:timer-off"
       }
     },
     "image": {
@@ -30,6 +41,9 @@
       },
       "color": {
         "default": "mdi:palette"
+      },
+      "ontimervolume": {
+        "default": "mdi:volume-medium"
       }
     },
     "remote": {
@@ -43,6 +57,9 @@
       }
     },
     "sensor": {
+      "usb_storage": {
+        "default": "mdi:usb-flash-drive"
+      },
       "power_on_reason": {
         "default": "mdi:power-plug"
       },
@@ -98,6 +115,15 @@
       },
       "earcsupport": {
         "default": "mdi:surround-sound"
+      },
+      "ontimerenable": {
+        "default": "mdi:timer-play"
+      },
+      "offtimerenable": {
+        "default": "mdi:timer-off"
+      },
+      "remote_lock": {
+        "default": "mdi:remote-off"
       }
     }
   },
@@ -122,6 +148,12 @@
     },
     "screenshot": {
       "service": "mdi:monitor-screenshot"
+    },
+    "cec_key": {
+      "service": "mdi:hdmi-port"
+    },
+    "ip_control": {
+      "service": "mdi:lan"
     }
   }
 }

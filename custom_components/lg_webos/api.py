@@ -7,13 +7,21 @@ tunnelled through a system alert.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
+import copy
+import hashlib
+import os
 import re
+import secrets
 import socket
+import string
 from typing import Any
 
 from aiowebostv import WebOsClient, WebOsTvCommandError
+from aiowebostv.handshake import REGISTRATION_MESSAGE
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 CREATE_ALERT = "system.notifications/createAlert"
 CLOSE_ALERT = "system.notifications/closeAlert"
@@ -28,6 +36,147 @@ LUNA_SET_SETTINGS = "luna://com.webos.settingsservice/setSystemSettings"
 LUNA_REBOOT = "luna://com.webos.service.tvpower/power/reboot"
 LUNA_SCREEN_SAVER = "luna://com.webos.service.tvpower/power/turnOnScreenSaver"
 LUNA_INPUT_PICKER = "luna://com.webos.surfacemanager/showInputPicker"
+
+# Permissions an unsigned manifest may ask for that aiowebostv does not.
+# Re-registering with the existing client key grants them silently.
+EXTRA_PERMISSIONS = (
+    "CONTROL_TIMER_INFO",
+    "READ_TV_CONTENT_STATE",
+    "READ_STORAGE_DEVICE_LIST",
+    "CHECK_BLUETOOTH_DEVICE",
+    "CONTROL_INPUT_JOYSTICK",
+    "READ_RECORDING_STATE",
+    "CONTROL_RECORDING",
+    "READ_RECORDING_SCHEDULE",
+    "CONTROL_TV_POWER",
+    "CONTROL_USER_INFO",
+    "READ_TV_PROGRAM_INFO",
+)
+
+TIMER_SETTINGS = "timer/getSettings"
+TIMER_KEYS = [
+    "onTimerEnable",
+    "offTimerEnable",
+    "onTimerHour",
+    "onTimerMinute",
+    "offTimerHour",
+    "offTimerMinute",
+    "onTimerVolume",
+]
+STORAGE_LIST = "com.webos.service.attachedstoragemanager/listDevices"
+BLUETOOTH_RADIO = "com.webos.service.bluetooth/gap/isRadioOn"
+
+LUNA_CEC_TARGET = "luna://com.webos.service.eim/cec/setCECUniqueId"
+LUNA_CEC_KEY = "luna://com.webos.service.eim/cec/sendKeyEvent"
+LUNA_IP_CONTROL_START = "luna://com.webos.tnp/com/palm/luna/private/ping"
+
+# Key name -> TV key code that the EIM service turns into a CEC UI command
+# (CKeyCode table recovered from the firmware).
+CEC_KEYS: dict[str, int] = {
+    "select": 0x1000004,
+    "up": 0x1000013,
+    "down": 0x1000015,
+    "left": 0x1000012,
+    "right": 0x1000014,
+    "home": 0x1000053,
+    "setup_menu": 0x1200004,
+    "contents_menu": 0x1202002,
+    "options": 0x1202004,
+    "exit": 0x1000000,
+    "info": 0x1200002,
+    "guide": 0x1200056,
+    "power": 0x1202000,
+    "channel_up": 0x1200021,
+    "channel_down": 0x1200022,
+    "previous_channel": 0x1200024,
+    "volume_up": 0x1000072,
+    "volume_down": 0x1000070,
+    "mute": 0x1000071,
+    "play": 0x1000080,
+    "pause": 0x1000085,
+    "stop": 0x1000081,
+    "record": 0x1000084,
+    "rewind": 0x10000C5,
+    "fast_forward": 0x1000102,
+    "next": 0x1000083,
+    "previous": 0x1000082,
+    "red": 0x1200011,
+    "green": 0x1200012,
+    "yellow": 0x1200013,
+    "blue": 0x1200014,
+    **{str(n): 0x30 + n for n in range(10)},
+}
+
+IP_CONTROL_PORT = 9761
+IP_CONTROL_TIMEOUT = 5
+# PBKDF2 salt of tvlink-network-proxy (same in webOS 5 and 24 firmware).
+IP_CONTROL_SALT = bytes.fromhex("6361b80e9bdca6638d0720f2cc568fb9")
+
+
+class LgWebosClient(WebOsClient):
+    """aiowebostv client that pairs with the extra permissions."""
+
+    def registration_msg(self) -> dict[str, Any]:
+        """Registration message with EXTRA_PERMISSIONS added."""
+        msg: dict[str, Any] = copy.deepcopy(REGISTRATION_MESSAGE)
+        permissions = msg["payload"]["manifest"]["permissions"]
+        permissions.extend(p for p in EXTRA_PERMISSIONS if p not in permissions)
+        if self.client_key:
+            msg["payload"]["client-key"] = self.client_key
+        return msg
+
+
+def new_ip_control_code() -> str:
+    """A key code like the TV generates: 8 upper-case letters and digits."""
+    alphabet = string.ascii_uppercase + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(8))
+
+
+class IpControl:
+    """LG IP Control (TCP 9761): AES-128, one command per connection."""
+
+    def __init__(self, host: str, code: str) -> None:
+        """Derive the AES key from the 8-character key code."""
+        self.host = host
+        self._key = hashlib.pbkdf2_hmac(
+            "sha256", code.encode(), IP_CONTROL_SALT, 16384, 16
+        )
+
+    def encrypt(self, command: str, iv: bytes | None = None) -> bytes:
+        """IV encrypted with ECB, then the CR-terminated command with CBC."""
+        iv = iv or os.urandom(16)
+        data = (command + "\r").encode()
+        pad = 16 - len(data) % 16
+        data += bytes([pad]) * pad
+        ecb = Cipher(algorithms.AES(self._key), modes.ECB()).encryptor()
+        cbc = Cipher(algorithms.AES(self._key), modes.CBC(iv)).encryptor()
+        return ecb.update(iv) + ecb.finalize() + cbc.update(data) + cbc.finalize()
+
+    def decrypt(self, blob: bytes) -> str:
+        """Inverse of encrypt; the answer ends at the first newline."""
+        ecb = Cipher(algorithms.AES(self._key), modes.ECB()).decryptor()
+        iv = ecb.update(blob[:16]) + ecb.finalize()
+        cbc = Cipher(algorithms.AES(self._key), modes.CBC(iv)).decryptor()
+        data = cbc.update(blob[16:]) + cbc.finalize()
+        # The answer ends with a newline; padding bytes are all below 0x20.
+        line = data.split(b"\n")[0].rstrip(bytes(range(0x20)))
+        return line.decode(errors="replace").strip()
+
+    async def send(self, command: str) -> str:
+        """Send one command and return the answer (OK, VOL:30, ...)."""
+        # An incomplete command gets no answer at all: the timeout is the error.
+        async with asyncio.timeout(IP_CONTROL_TIMEOUT):
+            reader, writer = await asyncio.open_connection(self.host, IP_CONTROL_PORT)
+            try:
+                writer.write(self.encrypt(command))
+                await writer.drain()
+                blob = await reader.read(4096)
+            finally:
+                writer.close()
+                with suppress(OSError):
+                    await writer.wait_closed()
+        return self.decrypt(blob)
+
 
 # Settings the SSAP gateway may let a paired client read. The whitelist
 # differs per webOS release, so keys the TV refuses are dropped at runtime.
@@ -111,6 +260,10 @@ CACHED = (
     "hdmi_signal",
     "power_on_reason",
     "options",
+    "storage",
+    "bluetooth_on",
+    "unreadable",
+    "pending",
 )
 
 # Luna calls behind entities. Firmware decides which ones an alert may carry
@@ -120,7 +273,11 @@ LUNA_FEATURES: dict[str, str] = {
     "reboot": LUNA_REBOOT,
     "screen_saver": LUNA_SCREEN_SAVER,
     "input_picker": LUNA_INPUT_PICKER,
+    "cec": LUNA_CEC_KEY,
+    "ip_control": LUNA_IP_CONTROL_START,
 }
+# Bump when LUNA_FEATURES changes, so existing entries probe again.
+LUNA_PROBE_VERSION = 2
 
 
 def send_magic_packet(macs: list[str], broadcast: str = "255.255.255.255") -> None:
@@ -146,6 +303,12 @@ class LgWebosTv:
         self.hdmi_signal: dict[str, Any] = {}
         self.power_on_reason: str | None = None
         self.options: dict[str, list[str]] = {}
+        self.storage: list[dict[str, Any]] = []
+        self.bluetooth_on: bool | None = None
+        # Keys this TV refused to hand out (candidates for write-only entities).
+        self.unreadable: dict[str, list[str]] = {}
+        # Setting writes made while the TV was unreachable, applied on connect.
+        self.pending: dict[str, dict[str, Any]] = {}
         self._readable = {cat: list(keys) for cat, keys in READABLE_SETTINGS.items()}
 
     @property
@@ -197,12 +360,24 @@ class LgWebosTv:
             (NETWORK_STATUS, store("network", lambda p: p)),
             (HDMI_SIGNAL, store("hdmi_signal", lambda p: p)),
             (POWER_ON_REASON, store("power_on_reason", lambda p: p.get("reason"))),
+            (STORAGE_LIST, store("storage", lambda p: p.get("devices", []))),
+            (BLUETOOTH_RADIO, store("bluetooth_on", lambda p: p.get("radioOn"))),
         ):
             # Not every release has every service; a missing one is not an error.
             with suppress(WebOsTvCommandError):
                 await self.client.subscribe(handler, uri)
         for category, keys in self._readable.items():
             await self._subscribe_settings(category, keys, on_settings(category))
+        self.unreadable = {
+            category: [k for k in READABLE_SETTINGS[category] if k not in keys]
+            for category, keys in self._readable.items()
+        }
+        # Timers live in the "time" category, only reachable through this URI
+        # (CONTROL_TIMER_INFO). It never answers a plain request: subscribe.
+        with suppress(WebOsTvCommandError):
+            await self.client.subscribe(
+                on_settings("time"), TIMER_SETTINGS, {"keys": TIMER_KEYS}
+            )
         with suppress(WebOsTvCommandError):
             res = await self.client.request(GET_CONFIGS, {"configNames": CONFIG_NAMES})
             self.configs = res.get("configs", {})
@@ -303,9 +478,80 @@ class LgWebosTv:
             name for name, uri in LUNA_FEATURES.items() if await self.luna_allowed(uri)
         ]
 
-    async def set_settings(self, category: str, settings: dict[str, Any]) -> None:
-        """Write system settings (any category/key the settings service has)."""
+    async def set_settings(self, category: str, settings: dict[str, Any]) -> bool:
+        """Write system settings (any category/key the settings service has).
+
+        With the TV unreachable the write is queued (see flush_pending) and
+        shown right away. Returns True when it went out now.
+        """
+        self.settings.setdefault(category, {}).update(settings)
+        if not self.client.is_connected():
+            self.pending.setdefault(category, {}).update(settings)
+            return False
         await self.luna(LUNA_SET_SETTINGS, {"category": category, "settings": settings})
+        return True
+
+    async def flush_pending(self) -> dict[str, dict[str, Any]]:
+        """Apply the writes queued while the TV was off; returns what was sent."""
+        sent: dict[str, dict[str, Any]] = {}
+        for category in list(self.pending):
+            settings = self.pending.pop(category)
+            await self.luna(
+                LUNA_SET_SETTINGS, {"category": category, "settings": settings}
+            )
+            self.settings.setdefault(category, {}).update(settings)
+            sent[category] = settings
+        return sent
+
+    @property
+    def cec_devices(self) -> dict[str, dict[str, Any]]:
+        """CEC devices by input id: name, unique id and HDMI port."""
+        found: dict[str, dict[str, Any]] = {}
+        for device in self.inputs:
+            for sub in device.get("subList", []):
+                if sub.get("id") == "SIMPLINK" and sub.get("uniqueId") is not None:
+                    found[device["id"]] = {
+                        "name": sub.get("osdName") or device.get("label"),
+                        "unique_id": sub["uniqueId"],
+                        "port": device.get("port"),
+                    }
+        return found
+
+    async def cec_key(self, input_id: str, key: str) -> None:
+        """Press a remote key on the device behind an input, over HDMI-CEC."""
+        device = self.cec_devices.get(input_id)
+        if device is None:
+            raise WebOsTvCommandError(f"No CEC device on {input_id}")
+        if key not in CEC_KEYS:
+            raise WebOsTvCommandError(f"Unknown CEC key {key}")
+        target = {"uniqueId": device["unique_id"]}
+        if device["port"] is not None:
+            target["hdmiPort"] = device["port"]
+        await self.luna(LUNA_CEC_TARGET, target)
+        await self.luna(LUNA_CEC_KEY, {"key": CEC_KEYS[key]})
+
+    async def enable_ip_control(self, code: str) -> None:
+        """Turn LG IP Control on with our own key code and start the service.
+
+        The service reads the key from the settings when it starts, so the
+        key goes in first. It keeps running across reboots once enabled.
+        """
+        await self.luna(
+            LUNA_SET_SETTINGS,
+            {
+                "category": "option",
+                "settings": {"IPControlSecureKey": code, "enableIpControl": "on"},
+            },
+        )
+        await asyncio.sleep(1)
+        await self.luna(LUNA_IP_CONTROL_START)
+
+    async def disable_ip_control(self) -> None:
+        """Turn LG IP Control off (the running service stops at the next boot)."""
+        await self.luna(
+            LUNA_SET_SETTINGS,
+            {"category": "option", "settings": {"enableIpControl": "off"}},
+        )
 
     async def screenshot(self) -> bytes | None:
         """Capture what is on screen as JPEG (protected content comes out black)."""

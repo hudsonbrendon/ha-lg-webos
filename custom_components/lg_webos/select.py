@@ -8,6 +8,7 @@ from homeassistant.components.select import SelectEntity, SelectEntityDescriptio
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import LgWebosConfigEntry
 from .const import SOUND_OUTPUTS
@@ -34,6 +35,11 @@ def _select(category: str, key: str, values: str) -> LgWebosSelectDescription:
         entity_category=EntityCategory.CONFIG,
     )
 
+
+# LG IP Control names (ipc_mapping_table.json); the TV ignores what it lacks.
+ASPECT_RATIOS = ["16by9", "setbyoriginal", "4by3", "justscan", "zoom", "21by9"]
+# Settings webOS 5 refuses to hand out but accepts as writes.
+ASSUMED = ("pictureMode", "energySaving", "soundMode")
 
 # The value lists are the union across models; the TV refuses what it lacks.
 SELECTS = {
@@ -85,8 +91,22 @@ async def async_setup_entry(
     entry: LgWebosConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up sound output plus the setting selects this TV lets us read."""
-    async_add_entities([LgWebosSoundOutputSelect(entry.runtime_data)])
+    """Set up sound output, readable settings and write-only ones."""
+    coordinator = entry.runtime_data
+    async_add_entities([LgWebosSoundOutputSelect(coordinator)])
+    if coordinator.ip_control is not None:
+        async_add_entities([LgWebosAspectRatioSelect(coordinator)])
+    async_add_dynamic(
+        entry,
+        async_add_entities,
+        lambda c: (
+            k
+            for k in ASSUMED
+            if "settings" in c.luna_allowed
+            and k in c.tv.unreadable.get(SELECTS[k].category, [])
+        ),
+        lambda key: LgWebosAssumedSelect(entry.runtime_data, SELECTS[key]),
+    )
     async_add_dynamic(
         entry,
         async_add_entities,
@@ -128,9 +148,10 @@ class LgWebosSoundOutputSelect(LgWebosEntity, SelectEntity):
 
 
 class LgWebosSettingSelect(LgWebosEntity, SelectEntity):
-    """An enumerated system setting."""
+    """An enumerated system setting; changes made while off wait for the TV."""
 
     entity_description: LgWebosSelectDescription
+    _needs = "nothing"
     _needs = "connected"
 
     @property
@@ -157,3 +178,69 @@ class LgWebosSettingSelect(LgWebosEntity, SelectEntity):
         """Write the setting."""
         d = self.entity_description
         await async_call(self.tv.set_settings(d.category, {d.key: option}))
+        self.async_write_ha_state()
+
+
+class LgWebosAssumedSelect(LgWebosEntity, SelectEntity, RestoreEntity):
+    """A setting this firmware lets us write but not read (webOS 5).
+
+    Shows the last value sent from Home Assistant; a change made with the
+    remote is not seen.
+    """
+
+    entity_description: LgWebosSelectDescription
+    _attr_assumed_state = True
+    _needs = "nothing"
+
+    def __init__(
+        self, coordinator: LgWebosCoordinator, description: LgWebosSelectDescription
+    ) -> None:
+        """Initialize the select."""
+        super().__init__(coordinator, description)
+        # Own id: the readable select of the same key may exist on other models.
+        self._attr_unique_id = f"{self._attr_unique_id}_assumed"
+        self._attr_options = list(description.values)
+        self._attr_current_option = None
+
+    async def async_added_to_hass(self) -> None:
+        """Bring back the last value sent."""
+        await super().async_added_to_hass()
+        last = await self.async_get_last_state()
+        if last is not None and last.state in self._attr_options:
+            self._attr_current_option = last.state
+
+    async def async_select_option(self, option: str) -> None:
+        """Write the setting."""
+        d = self.entity_description
+        await async_call(self.tv.set_settings(d.category, {d.key: option}))
+        self._attr_current_option = option
+        self.async_write_ha_state()
+
+
+class LgWebosAspectRatioSelect(LgWebosEntity, SelectEntity, RestoreEntity):
+    """Aspect ratio through LG IP Control (write only)."""
+
+    _attr_translation_key = "aspect_ratio"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_assumed_state = True
+    _attr_options = ASPECT_RATIOS
+
+    def __init__(self, coordinator: LgWebosCoordinator) -> None:
+        """Initialize the select."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.config_entry.unique_id}_aspect_ratio"
+        self._attr_current_option = None
+
+    async def async_added_to_hass(self) -> None:
+        """Bring back the last value sent."""
+        await super().async_added_to_hass()
+        last = await self.async_get_last_state()
+        if last is not None and last.state in ASPECT_RATIOS:
+            self._attr_current_option = last.state
+
+    async def async_select_option(self, option: str) -> None:
+        """Send the aspect ratio."""
+        ip = self.coordinator.require_ip_control()
+        await async_call(ip.send(f"ASPECT_RATIO {option}"))
+        self._attr_current_option = option
+        self.async_write_ha_state()

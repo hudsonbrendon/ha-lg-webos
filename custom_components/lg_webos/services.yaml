@@ -86,3 +86,66 @@ screenshot:
       example: /config/www/tv.jpg
       selector:
         text:
+cec_key:
+  fields:
+    device_id: *id001
+    input:
+      required: true
+      example: HDMI_2
+      selector:
+        text:
+    key:
+      required: true
+      example: power
+      selector:
+        select:
+          options:
+          - '0'
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - '5'
+          - '6'
+          - '7'
+          - '8'
+          - '9'
+          - blue
+          - channel_down
+          - channel_up
+          - contents_menu
+          - down
+          - exit
+          - fast_forward
+          - green
+          - guide
+          - home
+          - info
+          - left
+          - mute
+          - next
+          - options
+          - pause
+          - play
+          - power
+          - previous
+          - previous_channel
+          - record
+          - red
+          - rewind
+          - right
+          - select
+          - setup_menu
+          - stop
+          - up
+          - volume_down
+          - volume_up
+          - yellow
+ip_control:
+  fields:
+    device_id: *id001
+    command:
+      required: true
+      example: CURRENT_VOL
+      selector:
+        text:

@@ -1,4 +1,17 @@
 {
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "ip_control": "LG IP Control"
+        },
+        "data_description": {
+          "ip_control": "Turns on the TV's IP Control service (TCP 9761) with a key generated here. Adds remote lock, aspect ratio and the ip_control action."
+        }
+      }
+    }
+  },
   "config": {
     "flow_title": "{name} ({host})",
     "step": {
@@ -56,6 +69,9 @@
       },
       "internet": {
         "name": "Internet"
+      },
+      "bluetooth": {
+        "name": "Bluetooth"
       }
     },
     "button": {
@@ -64,6 +80,9 @@
       },
       "input_picker": {
         "name": "Input picker"
+      },
+      "cec_power": {
+        "name": "{input} power (CEC)"
       }
     },
     "image": {
@@ -97,6 +116,9 @@
       },
       "colortemperature": {
         "name": "Color temperature"
+      },
+      "ontimervolume": {
+        "name": "Timer power-on volume"
       }
     },
     "remote": {
@@ -168,6 +190,9 @@
       },
       "lifeonscreenmode": {
         "name": "Always ready"
+      },
+      "aspect_ratio": {
+        "name": "Aspect ratio"
       }
     },
     "sensor": {
@@ -197,6 +222,9 @@
       },
       "ip_address": {
         "name": "IP address"
+      },
+      "usb_storage": {
+        "name": "USB storage"
       },
       "input_device": {
         "name": "{input} device"
@@ -253,10 +281,30 @@
       },
       "uhd_deep_color": {
         "name": "{input} Deep Color"
+      },
+      "ontimerenable": {
+        "name": "On timer"
+      },
+      "offtimerenable": {
+        "name": "Off timer"
+      },
+      "remote_lock": {
+        "name": "Remote lock"
+      }
+    },
+    "time": {
+      "ontimer_time": {
+        "name": "On timer time"
+      },
+      "offtimer_time": {
+        "name": "Off timer time"
       }
     }
   },
   "exceptions": {
+    "ip_control_off": {
+      "message": "LG IP Control is off for this TV (turn it on in the integration options)"
+    },
     "command_failed": {
       "message": "The TV did not accept the command: {error}"
     },
@@ -391,6 +439,38 @@
         "replace": {
           "name": "Replace",
           "description": "Replace what is already in the field."
+        }
+      }
+    },
+    "cec_key": {
+      "name": "Press key on HDMI device (CEC)",
+      "description": "Sends a remote key to the device on an HDMI input over HDMI-CEC (SIMPLINK has to be on).",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "The TV to control."
+        },
+        "input": {
+          "name": "Input",
+          "description": "Input id, e.g. HDMI_2."
+        },
+        "key": {
+          "name": "Key",
+          "description": "Key to press."
+        }
+      }
+    },
+    "ip_control": {
+      "name": "Send LG IP Control command",
+      "description": "Sends a raw LG IP Control command (TCP 9761) and returns the answer.",
+      "fields": {
+        "device_id": {
+          "name": "TV",
+          "description": "The TV to control."
+        },
+        "command": {
+          "name": "Command",
+          "description": "e.g. CURRENT_VOL, KEY_ACTION exit, PICTURE_MODE cinema."
         }
       }
     },

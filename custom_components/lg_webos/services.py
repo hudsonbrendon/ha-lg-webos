@@ -18,6 +18,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 import voluptuous as vol
 
+from .api import CEC_KEYS
 from .const import (
     ATTR_APP_ID,
     ATTR_BUTTON,
@@ -25,6 +26,8 @@ from .const import (
     ATTR_COMMAND,
     ATTR_CONTENT_ID,
     ATTR_FILENAME,
+    ATTR_INPUT,
+    ATTR_KEY,
     ATTR_PARAMS,
     ATTR_PAYLOAD,
     ATTR_REPLACE,
@@ -33,7 +36,9 @@ from .const import (
     ATTR_URI,
     DOMAIN,
     SERVICE_BUTTON,
+    SERVICE_CEC_KEY,
     SERVICE_COMMAND,
+    SERVICE_IP_CONTROL,
     SERVICE_LAUNCH_APP,
     SERVICE_LUNA,
     SERVICE_SCREENSHOT,
@@ -44,6 +49,19 @@ from .coordinator import LgWebosCoordinator
 from .entity import async_call
 
 DEVICE = {vol.Required(ATTR_DEVICE_ID): cv.string}
+
+
+def _coordinator_any(call: ServiceCall) -> LgWebosCoordinator:
+    """Resolve the TV an action targets, whatever its state."""
+    device = dr.async_get(call.hass).async_get(call.data[ATTR_DEVICE_ID])
+    for entry_id in device.config_entries if device else ():
+        entry = call.hass.config_entries.async_get_entry(entry_id)
+        if entry and entry.domain == DOMAIN and entry.state is ConfigEntryState.LOADED:
+            coordinator: LgWebosCoordinator = entry.runtime_data
+            return coordinator
+    raise ServiceValidationError(
+        translation_domain=DOMAIN, translation_key="device_not_found"
+    )
 
 
 def _coordinator(call: ServiceCall) -> LgWebosCoordinator:
@@ -118,6 +136,17 @@ async def _screenshot(call: ServiceCall) -> None:
             translation_domain=DOMAIN, translation_key="screenshot_failed"
         )
     await hass.async_add_executor_job(Path(filename).write_bytes, image)
+
+
+async def _cec_key(call: ServiceCall) -> None:
+    tv = _coordinator(call).tv
+    await async_call(tv.cec_key(call.data[ATTR_INPUT].upper(), call.data[ATTR_KEY]))
+
+
+async def _ip_control(call: ServiceCall) -> ServiceResponse:
+    ip = _coordinator_any(call).require_ip_control()
+    answer = await async_call(ip.send(call.data[ATTR_COMMAND]))
+    return {"response": answer}
 
 
 @callback
@@ -197,4 +226,23 @@ def async_setup_services(hass: HomeAssistant) -> None:
         SERVICE_SCREENSHOT,
         _screenshot,
         vol.Schema({**DEVICE, vol.Required(ATTR_FILENAME): cv.string}),
+    )
+    reg(
+        DOMAIN,
+        SERVICE_CEC_KEY,
+        _cec_key,
+        vol.Schema(
+            {
+                **DEVICE,
+                vol.Required(ATTR_INPUT): cv.string,
+                vol.Required(ATTR_KEY): vol.In(sorted(CEC_KEYS)),
+            }
+        ),
+    )
+    reg(
+        DOMAIN,
+        SERVICE_IP_CONTROL,
+        _ip_control,
+        vol.Schema({**DEVICE, vol.Required(ATTR_COMMAND): cv.string}),
+        supports_response=SupportsResponse.ONLY,
     )

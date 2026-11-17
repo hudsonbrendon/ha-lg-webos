@@ -62,7 +62,24 @@ def _network(c: LgWebosCoordinator) -> str | None:
     return link.get("ssid") or link.get("kind")
 
 
+def _usb(c: LgWebosCoordinator) -> list[dict[str, Any]]:
+    """Storage the user plugged in (the list also has built-in sample folders)."""
+    return [
+        d
+        for d in c.tv.storage
+        if not str(d.get("deviceType", "")).startswith("internal")
+    ]
+
+
 SENSORS = (
+    LgWebosSensorDescription(
+        key="usb_storage",
+        translation_key="usb_storage",
+        value_fn=lambda c: len(_usb(c)),
+        attributes_fn=lambda c: {
+            "devices": [d.get("deviceName") for d in _usb(c)],
+        },
+    ),
     LgWebosSensorDescription(
         key="power_state",
         translation_key="power_state",

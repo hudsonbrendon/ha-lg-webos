@@ -6,12 +6,14 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlparse
 
-from aiowebostv import WebOsClient, WebOsTvPairError
+from aiowebostv import WebOsTvPairError
 from homeassistant.config_entries import (
     SOURCE_IMPORT,
     SOURCE_RECONFIGURE,
+    ConfigEntry,
     ConfigFlow,
     ConfigFlowResult,
+    OptionsFlowWithReload,
 )
 from homeassistant.const import (
     CONF_CLIENT_SECRET,
@@ -19,6 +21,7 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_UNIQUE_ID,
 )
+from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.service_info.ssdp import (
@@ -27,8 +30,8 @@ from homeassistant.helpers.service_info.ssdp import (
 )
 import voluptuous as vol
 
-from .api import LgWebosTv
-from .const import CONF_MACS, DOMAIN, NATIVE_DOMAIN, WEBOS_EXCEPTIONS
+from .api import LgWebosClient, LgWebosTv
+from .const import CONF_IP_CONTROL, CONF_MACS, DOMAIN, NATIVE_DOMAIN, WEBOS_EXCEPTIONS
 
 DEFAULT_NAME = "LG webOS TV"
 CONF_ENTRIES = "entries"
@@ -38,6 +41,12 @@ class LgWebosConfigFlow(ConfigFlow, domain=DOMAIN):
     """Pair with a TV, or reuse the pairing of the built-in integration."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> LgWebosOptionsFlow:
+        """Options: LG IP Control."""
+        return LgWebosOptionsFlow()
 
     def __init__(self) -> None:
         """Initialize the flow."""
@@ -178,7 +187,7 @@ class LgWebosConfigFlow(ConfigFlow, domain=DOMAIN):
         """Connect; without a stored key the TV shows a prompt to accept."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            client = WebOsClient(
+            client = LgWebosClient(
                 self._host, self._key, client_session=async_get_clientsession(self.hass)
             )
             try:
@@ -234,5 +243,27 @@ class LgWebosConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="reconfigure",
             data_schema=vol.Schema(
                 {vol.Required(CONF_HOST, default=entry.data[CONF_HOST]): str}
+            ),
+        )
+
+
+class LgWebosOptionsFlow(OptionsFlowWithReload):
+    """Turn LG IP Control on or off."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Single form."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_IP_CONTROL,
+                        default=self.config_entry.options.get(CONF_IP_CONTROL, False),
+                    ): bool,
+                }
             ),
         )
