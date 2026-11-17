@@ -70,8 +70,12 @@ async def async_setup_entry(
     """Set up the screen switch and the setting switches this TV exposes."""
     coordinator = entry.runtime_data
     async_add_entities([LgWebosScreenSwitch(coordinator)])
-    if coordinator.ip_control is not None:
-        async_add_entities([LgWebosRemoteLockSwitch(coordinator)])
+    async_add_dynamic(
+        entry,
+        async_add_entities,
+        lambda c: ["remote_lock"] if c.ip_control is not None else [],
+        lambda _: LgWebosRemoteLockSwitch(coordinator),
+    )
     async_add_dynamic(
         entry,
         async_add_entities,

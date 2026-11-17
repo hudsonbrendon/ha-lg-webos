@@ -40,6 +40,7 @@ FLUSH_WAIT_ON = 30
 FLUSH_SETTLE = 8
 FLUSH_CONFIRM = 3
 FLUSH_ATTEMPTS = 3
+IP_CONTROL_CHECKS = 5
 
 
 class LgWebosCoordinator(DataUpdateCoordinator[None]):
@@ -201,9 +202,15 @@ class LgWebosCoordinator(DataUpdateCoordinator[None]):
             code = new_ip_control_code()
             await self.tv.enable_ip_control(code)
             client = IpControl(data[CONF_HOST], code)
-            try:
-                await client.send("GET_IPCONTROL_STATE")
-            except OSError, TimeoutError, ValueError:
+            for _ in range(IP_CONTROL_CHECKS):
+                # The service takes a few seconds to come up after the ping.
+                await asyncio.sleep(2)
+                try:
+                    await client.send("GET_IPCONTROL_STATE")
+                except OSError, TimeoutError, ValueError:
+                    continue
+                break
+            else:
                 # The service was already running with another key (set on
                 # the TV menu); it only rereads the key when the TV restarts.
                 LOGGER.warning(

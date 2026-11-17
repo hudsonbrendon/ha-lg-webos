@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 - 2026-11-16
+
+- LG IP Control: the key check waits for the service to start instead of
+  warning on the first try; remote lock and aspect ratio appear as soon as
+  the key is set, without a reload.
+
 ## 0.2.1 - 2026-11-16
 
 - Queued writes wait for the TV to settle after waking, are confirmed against

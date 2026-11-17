@@ -346,10 +346,14 @@ async def test_cec(hass, client, entry):
 async def test_ip_control_option(hass, client, entry):
     """Turning the option on enables IP Control on the TV with a fresh key."""
     hass.config_entries.async_update_entry(entry, options={"ip_control": True})
-    with patch(
-        "custom_components.lg_webos.coordinator.IpControl.send", return_value="ON"
+    with (
+        patch(
+            "custom_components.lg_webos.coordinator.IpControl.send", return_value="ON"
+        ),
+        patch("custom_components.lg_webos.coordinator.asyncio.sleep"),
     ):
         await setup(hass, entry)
+        await hass.async_block_till_done()
     code = entry.data["ip_control_code"]
     assert len(code) == 8
     calls = luna_calls(client)

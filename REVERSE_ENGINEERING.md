@@ -168,6 +168,9 @@ for more non-SECURE permissions gets them **without a prompt**. With
 `networkinput/getGamepadInputSocket`. Timer writes were verified with
 read-back.
 
+The same silent grant happened on B (webOS 24) when the integration
+reconnected with the extended manifest.
+
 ## HDMI-CEC (firmware + live, A)
 
 The EIM service exposes `cec/setCECUniqueId {uniqueId, hdmiPort}` (choose the
@@ -193,7 +196,19 @@ AES-ECB(IV) ‖ AES-CBC(IV, command + CR, PKCS#7-style padding); answer
 decrypted the same way, ending in LF. Queries `CURRENT_VOL`, `MUTE_STATE`,
 `CURRENT_APP`, `GET_MACADDRESS wired`, `GET_IPCONTROL_STATE` answer; writes
 answer `OK`; a command missing its argument gets no answer at all. There is
-no query for picture mode, so it cannot fill the webOS 5 read gap.
+no query for picture mode, so it cannot fill the webOS 5 read gap. The same
+enable-by-settings path worked on B (webOS 24); the service needs a few
+seconds after the ping before it answers.
+
+## Writing while the TV is off (live, A)
+
+Right after a wake-on-LAN the TV accepts alerts but drops their luna calls,
+and it switches back to its last input a few seconds later. A write sent in
+that window does nothing. Waiting for `Active` plus ~8 s works; the TV then
+pushes the new value on the settings subscription, which is how the
+integration confirms it. Picture settings belong to the current input and
+picture mode, so while the TV changes input or powers down, the subscription
+can push the values of another context.
 
 ## Not known
 

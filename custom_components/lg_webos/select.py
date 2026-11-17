@@ -94,8 +94,12 @@ async def async_setup_entry(
     """Set up sound output, readable settings and write-only ones."""
     coordinator = entry.runtime_data
     async_add_entities([LgWebosSoundOutputSelect(coordinator)])
-    if coordinator.ip_control is not None:
-        async_add_entities([LgWebosAspectRatioSelect(coordinator)])
+    async_add_dynamic(
+        entry,
+        async_add_entities,
+        lambda c: ["aspect_ratio"] if c.ip_control is not None else [],
+        lambda _: LgWebosAspectRatioSelect(coordinator),
+    )
     async_add_dynamic(
         entry,
         async_add_entities,
