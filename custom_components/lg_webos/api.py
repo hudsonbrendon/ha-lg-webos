@@ -500,13 +500,27 @@ class LgWebosTv:
         """Apply the writes queued while the TV was off; returns what was sent."""
         sent: dict[str, dict[str, Any]] = {}
         for category in list(self.pending):
-            settings = self.pending.pop(category)
+            settings = self.pending[category]
             await self.luna(
                 LUNA_SET_SETTINGS, {"category": category, "settings": settings}
             )
-            self.settings.setdefault(category, {}).update(settings)
+            # Dropped only once sent; the TV's own push confirms the value.
+            del self.pending[category]
             sent[category] = settings
         return sent
+
+    def not_applied(self, sent: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        """Readable keys whose value the TV did not confirm after a flush."""
+        missing: dict[str, dict[str, Any]] = {}
+        for category, settings in sent.items():
+            reported = self.settings.get(category, {})
+            for key, value in settings.items():
+                readable = key in self._readable.get(category, []) or (
+                    category == "time" and key in TIMER_KEYS
+                )
+                if readable and str(reported.get(key)) != str(value):
+                    missing.setdefault(category, {})[key] = value
+        return missing
 
     @property
     def cec_devices(self) -> dict[str, dict[str, Any]]:

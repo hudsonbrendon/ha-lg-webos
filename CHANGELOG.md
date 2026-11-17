@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 - 2026-11-16
+
+- Queued writes wait for the TV to settle after waking, are confirmed against
+  the TV's own pushes and sent again if they did not take.
+- The luna probe is asked again when the TV answers with something other than
+  a clear refusal (a TV still waking up rejects every alert).
+- The options accept a key code already generated on the TV menu.
+- Uses the device's single config entry on Home Assistant 2026.11.
+
 ## 0.2.0 - 2026-11-16
 
 - Pairs with extra permissions (granted silently): on/off timers as switches,

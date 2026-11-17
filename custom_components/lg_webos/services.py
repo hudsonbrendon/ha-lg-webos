@@ -51,10 +51,19 @@ from .entity import async_call
 DEVICE = {vol.Required(ATTR_DEVICE_ID): cv.string}
 
 
+def _entry_ids(device: dr.DeviceEntry | None) -> list[str]:
+    """Config entries of a device, before and after HA 2026.11's one-entry model."""
+    if device is None:
+        return []
+    if entry_id := getattr(device, "config_entry_id", None):
+        return [entry_id]
+    return list(device.config_entries)
+
+
 def _coordinator_any(call: ServiceCall) -> LgWebosCoordinator:
     """Resolve the TV an action targets, whatever its state."""
     device = dr.async_get(call.hass).async_get(call.data[ATTR_DEVICE_ID])
-    for entry_id in device.config_entries if device else ():
+    for entry_id in _entry_ids(device):
         entry = call.hass.config_entries.async_get_entry(entry_id)
         if entry and entry.domain == DOMAIN and entry.state is ConfigEntryState.LOADED:
             coordinator: LgWebosCoordinator = entry.runtime_data
@@ -67,7 +76,7 @@ def _coordinator_any(call: ServiceCall) -> LgWebosCoordinator:
 def _coordinator(call: ServiceCall) -> LgWebosCoordinator:
     """Resolve the TV an action targets; its socket has to be up."""
     device = dr.async_get(call.hass).async_get(call.data[ATTR_DEVICE_ID])
-    for entry_id in device.config_entries if device else ():
+    for entry_id in _entry_ids(device):
         entry = call.hass.config_entries.async_get_entry(entry_id)
         if entry and entry.domain == DOMAIN and entry.state is ConfigEntryState.LOADED:
             coordinator: LgWebosCoordinator = entry.runtime_data

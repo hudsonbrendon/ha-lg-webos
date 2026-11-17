@@ -281,13 +281,20 @@ async def test_queue_applied_on_connect(hass, entry, hass_storage):
         "data": {"pending": {"picture": {"brightness": 40}}},
     }
     fake = make_client()
-    with patch("custom_components.lg_webos.LgWebosClient", return_value=fake):
+    with (
+        patch("custom_components.lg_webos.LgWebosClient", return_value=fake),
+        patch("custom_components.lg_webos.coordinator.FLUSH_SETTLE", 0),
+        patch("custom_components.lg_webos.coordinator.FLUSH_CONFIRM", 0),
+    ):
         await setup(hass, entry)
-    assert (
-        LUNA_SET_SETTINGS,
-        {"category": "picture", "settings": {"brightness": 40}},
-    ) in luna_calls(fake)
-    assert entry.runtime_data.tv.pending == {}
+        await hass.async_block_till_done()
+        sent = (
+            LUNA_SET_SETTINGS,
+            {"category": "picture", "settings": {"brightness": 40}},
+        )
+        # The TV never pushed 40 back: sent again on every attempt, then kept.
+        assert luna_calls(fake).count(sent) == 3
+        assert entry.runtime_data.tv.pending == {"picture": {"brightness": 40}}
 
 
 async def test_timer_time_write(hass, client, entry):
@@ -407,3 +414,30 @@ async def test_luna_probe_not_stored_when_tv_busy(hass, entry):
     with patch("custom_components.lg_webos.LgWebosClient", return_value=fake):
         await setup(hass, entry)
     assert "luna" not in entry.data
+
+
+async def test_queue_confirmed(hass, entry, hass_storage):
+    """A queued write the TV confirms is dropped from the queue."""
+    hass_storage[f"{DOMAIN}.{entry.entry_id}"] = {
+        "version": 1,
+        "data": {"pending": {"picture": {"brightness": 40}}},
+    }
+    fake = make_client()
+    original = fake.request.side_effect
+
+    async def confirm(uri, payload=None, **kwargs):
+        res = await original(uri, payload, **kwargs)
+        if uri == "system.notifications/closeAlert":
+            await fake.subscriptions["picture"]({"settings": {"brightness": "40"}})
+        return res
+
+    fake.request.side_effect = confirm
+    with (
+        patch("custom_components.lg_webos.LgWebosClient", return_value=fake),
+        patch("custom_components.lg_webos.coordinator.FLUSH_SETTLE", 0),
+        patch("custom_components.lg_webos.coordinator.FLUSH_CONFIRM", 0),
+    ):
+        await setup(hass, entry)
+        await hass.async_block_till_done()
+    assert entry.runtime_data.tv.pending == {}
+    assert hass.states.get("number.tv_da_sala_brightness").state == "40.0"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -34,6 +35,11 @@ if TYPE_CHECKING:
 
 # The TV closes its sockets when it sleeps; this is how fast we notice it woke.
 SCAN_INTERVAL = timedelta(seconds=10)
+# Queued writes: wait for the TV to report it is on, let it settle, confirm.
+FLUSH_WAIT_ON = 30
+FLUSH_SETTLE = 8
+FLUSH_CONFIRM = 3
+FLUSH_ATTEMPTS = 3
 
 
 class LgWebosCoordinator(DataUpdateCoordinator[None]):
@@ -88,13 +94,43 @@ class LgWebosCoordinator(DataUpdateCoordinator[None]):
             return
         try:
             await self.tv.async_subscribe(self._async_push)
-            if sent := await self.tv.flush_pending():
-                LOGGER.debug("%s: applied queued settings %s", self.name, sent)
+            if self.tv.pending:
+                self.config_entry.async_create_background_task(
+                    self.hass, self._async_flush_pending(), f"{DOMAIN} flush"
+                )
             await self._remember()
             self._store.async_delay_save(self.tv.snapshot, 0)
         except WEBOS_EXCEPTIONS:
             # Went back to sleep mid-setup; the next tick starts over.
             await self.client.disconnect()
+
+    async def _async_flush_pending(self) -> None:
+        """Apply writes queued while the TV was off, once it has settled.
+
+        Right after waking, the TV accepts alerts but drops their luna calls
+        and switches back to its input. So wait, send, and send again what
+        its own pushes do not confirm.
+        """
+        for _ in range(FLUSH_WAIT_ON):
+            if self.is_on:
+                break
+            await asyncio.sleep(1)
+        for _ in range(FLUSH_ATTEMPTS):
+            await asyncio.sleep(FLUSH_SETTLE)
+            if not self.tv.pending or not self.client.is_connected():
+                break
+            try:
+                sent = await self.tv.flush_pending()
+            except WEBOS_EXCEPTIONS:
+                continue
+            await asyncio.sleep(FLUSH_CONFIRM)
+            for category, settings in self.tv.not_applied(sent).items():
+                self.tv.pending.setdefault(category, {}).update(settings)
+            LOGGER.debug(
+                "%s: queued settings sent %s, left %s", self.name, sent, self.tv.pending
+            )
+        self._store.async_delay_save(self.tv.snapshot, 0)
+        self.async_set_updated_data(None)
 
     @property
     def luna_allowed(self) -> list[str]:
