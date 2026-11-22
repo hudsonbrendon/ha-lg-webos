@@ -62,3 +62,18 @@ async def test_import_native(hass, client):
     await hass.async_block_till_done()
     entries = hass.config_entries.async_entries(DOMAIN)
     assert {e.unique_id for e in entries} == {UUID, "other-uuid"}
+
+
+async def test_reauth_tries_stored_key(hass, client, entry):
+    """Reauth reconnects with the stored key first, so the TV shows no prompt."""
+    from unittest.mock import patch
+
+    with patch(
+        "custom_components.lg_webos.config_flow.LgWebosClient", return_value=client
+    ) as factory:
+        result = await entry.start_reauth_flow(hass)
+        assert result["step_id"] == "pairing"
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+    assert factory.call_args.args[1] == entry.data["client_secret"]

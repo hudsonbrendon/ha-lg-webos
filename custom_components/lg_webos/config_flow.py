@@ -201,6 +201,8 @@ class LgWebosConfigFlow(ConfigFlow, domain=DOMAIN):
                 await client.connect()
             except WebOsTvPairError:
                 errors["base"] = "pairing_refused"
+                # stored key refused: the next try asks the TV for a new one
+                self._key = None
             except WEBOS_EXCEPTIONS:
                 errors["base"] = "cannot_connect"
             else:
@@ -234,6 +236,9 @@ class LgWebosConfigFlow(ConfigFlow, domain=DOMAIN):
         """Pair again after the TV dropped our key."""
         self._host = entry_data[CONF_HOST]
         self._name = self._get_reauth_entry().title
+        # try the stored key first: no prompt on the TV if it still works
+        self._key = entry_data.get(CONF_CLIENT_SECRET)
+        self.context["title_placeholders"] = {"name": self._name, "host": self._host}
         return await self.async_step_pairing()
 
     async def async_step_reconfigure(

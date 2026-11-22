@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
-import copy
 import hashlib
 import os
 import re
@@ -20,7 +19,6 @@ import string
 from typing import Any
 
 from aiowebostv import WebOsClient, WebOsTvCommandError
-from aiowebostv.handshake import REGISTRATION_MESSAGE
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 CREATE_ALERT = "system.notifications/createAlert"
@@ -117,12 +115,15 @@ class LgWebosClient(WebOsClient):
     """aiowebostv client that pairs with the extra permissions."""
 
     def registration_msg(self) -> dict[str, Any]:
-        """Registration message with EXTRA_PERMISSIONS added."""
-        msg: dict[str, Any] = copy.deepcopy(REGISTRATION_MESSAGE)
+        """Registration message with EXTRA_PERMISSIONS added.
+
+        Built on the library's message so its unsigned retry still applies:
+        webOS 24 firmware rejects the signed manifest ("blacklisted
+        certificate"), and aiowebostv >= 1.1 then resends it unsigned.
+        """
+        msg = super().registration_msg()
         permissions = msg["payload"]["manifest"]["permissions"]
         permissions.extend(p for p in EXTRA_PERMISSIONS if p not in permissions)
-        if self.client_key:
-            msg["payload"]["client-key"] = self.client_key
         return msg
 
 
